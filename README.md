@@ -7,7 +7,7 @@ are being accomplished in userland today by Mango.
 
 ## Synopsis
 
-For instructions on compiling and running, see the old
+For instructions on compiling and running in QEMU, see the old
 [README](README).  The API section there is empty because the notion
 of userspace programs just barely existed at the end of the project's
 life.
@@ -15,6 +15,10 @@ life.
 The most interesting thing about the kernel was the kernel's memory
 allocation, since the goal was good IPC.  Most of the other code is
 probably pretty pedestrian for hobby OSes.
+
+A lot of learning took place over the course of this project, and its
+last year of development is documened in the
+[devlog](daniel3735928559.github.io/toast/ballast/index.xml)
 
 ## License
 
