@@ -18,7 +18,7 @@ probably pretty pedestrian for hobby OSes.
 
 A lot of learning took place over the course of this project, and its
 last year of development is documened in the
-[devlog](daniel3735928559.github.io/toast/ballast/index.xml)
+[devlog](http://daniel3735928559.github.io/toast/ballast/index.xml)
 
 ## License
 
