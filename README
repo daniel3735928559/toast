@@ -1,0 +1,35 @@
+20110601_toast_0.41: 
+
+--COMPILE--
+./make (when in the source dir)
+
+This will generate a bootable image at source/kernel.img for writing to a floppy 
+or similar.
+
+--RUN--
+In QEMU: qemu kernel.img -boot a -fda kernel.img -s -S (when in the source dir)
+
+This enables us to use the command 'target remote :1234' from inside GDB to 
+debug.  
+
+--RUNNING APPLICATIONS--
+See the API section below for documentation on how to write userspace programs.  
+You can load your usespace program by placing it into the initrd: The file in 
+the initrd called 'hello' will be loaded and executed on startup, so put your 
+program in 'source/initrd/files/hello' and list it in 'source/initrd/manifest' 
+with a line of the form '$s,hello' where $s is the size of your binary.  Then, 
+while in /source/initrd, run ./rdgen (which will compile the ramdisk image to 
+/source/initrd/initrd.img which will be ready to be compiled into the kernel 
+binary at build-time).
+
+
+--API--
+
+
+--CHANGES--
+
+
+--ISSUES--
+
+
+

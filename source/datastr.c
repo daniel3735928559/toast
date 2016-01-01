@@ -1,0 +1,7 @@
+#include "data_structures/util.c"
+#include "data_structures/bitmap.c"
+#include "data_structures/stack.c"
+#include "data_structures/imap.c"
+//#include "data_structures/bin_tree.c"
+//#include "data_structures/heap.c"
+//#include "vfs/vfs.c"

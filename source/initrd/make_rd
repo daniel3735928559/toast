@@ -1,0 +1,9 @@
+rm -v ./manifest;
+rm -v ./initrd.img;
+ls -l ./files |grep -c '^-' >> ./manifest;
+stat files/* --printf="%s,%n\n" |sed 's/files\///' >> ./manifest
+#ls -l ./files/ |grep '^-' | sed 's/[^ ]* [^ ]* [^ ]* [^ ]* \([0-9]*\) [^ ]* [^ ]* \(.*\)/\1,\2/g' >> ./manifest;
+echo "Manifest: "
+cat ./manifest;
+gcc ./rdgen.c -o rdgen;
+./rdgen;

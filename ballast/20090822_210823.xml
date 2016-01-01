@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Going insane" date="20090822:210823">
+<tag name="debug" />
+<tag name="bootloader" />
+<tag name="qemu" />
+<tag name="gdb" />
+<text>
+
+<p>
+There seems to be a problem with PIC remapping now.  What?  
+</p>
+
+<p>
+...
+</p>
+
+<p>
+Seems it was not a problem with PIC remapping (was disassembling in 16-bit
+mode--OOPS) but rather with something else.  Even adding a nop anywhere in
+kinit.asm causes a triple fault, with the faulting address listed as what
+appears to be somewhere in the `flush' section: 
+</p>
+
+<code>
+qemu: fatal: triple fault
+EAX=00088299 EBX=0000c000 ECX=c0000001 EDX=f03ff003
+ESI=ffff7c2b EDI=f0000010 EBP=00000001 ESP=0008fff4
+EIP=c00000a7 EFL=00000002 [-------] CPL=0 II=0 A20=1 SMM=0 HLT=0
+ES =0010 00000000 ffffffff 00cf9300
+CS =0008 00000000 ffffffff 00cf9a00
+SS =0010 00000000 ffffffff 00cf9300
+DS =0010 00000000 ffffffff 00cf9300
+FS =0010 00000000 ffffffff 00cf9300
+GS =0010 00000000 ffffffff 00cf9300
+LDT=0000 00000000 0000ffff 00008200
+TR =0000 00000000 0000ffff 00008b00
+GDT=     c0000059 00000017
+IDT=     00000000 000003ff
+CR0=e0000011 CR2=00488a99 CR3=00009000 CR4=00000000
+CCS=00088299 CCD=000882f2 CCO=ADDB
+FCW=037f FSW=0000 [ST=0] FTW=00 MXCSR=00001f80
+FPR0=0000000000000000 0000 FPR1=0000000000000000 0000
+FPR2=0000000000000000 0000 FPR3=0000000000000000 0000
+FPR4=0000000000000000 0000 FPR5=0000000000000000 0000
+FPR6=0000000000000000 0000 FPR7=0000000000000000 0000
+XMM00=00000000000000000000000000000000 XMM01=00000000000000000000000000000000
+XMM02=00000000000000000000000000000000 XMM03=00000000000000000000000000000000
+XMM04=00000000000000000000000000000000 XMM05=00000000000000000000000000000000
+XMM06=00000000000000000000000000000000 XMM07=00000000000000000000000000000000
+Aborted
+</code>
+
+<p>
+Whereas
+</p>
+
+<code>
+ndisasm -b32 kernel.bin |head -n 100
+</code>
+
+<p>
+Gives: 
+</p>
+
+<code>
+00000000  58                pop eax
+00000001  A3F60200C0        mov [0xc00002f6],eax
+00000006  0F0115710000C0    lgdt [dword 0xc0000071]
+0000000D  EA140000C00800    jmp dword 0x8:0xc0000014
+00000014  66B81000          mov ax,0x10
+00000018  8ED8              mov ds,ax
+0000001A  8EE0              mov fs,ax
+0000001C  8EE8              mov gs,ax
+0000001E  8EC0              mov es,ax
+00000020  8ED0              mov ss,ax
+00000022  EA290000C00800    jmp dword 0x8:0xc0000029
+00000029  E849000000        call dword 0x77
+0000002E  B0FF              mov al,0xff
+00000030  E621              out 0x21,al
+00000032  E6A1              out 0xa1,al
+00000034  0F011DE00100C0    lidt [dword 0xc00001e0]
+0000003B  FB                sti
+0000003C  B101              mov cl,0x1
+0000003E  B401              mov ah,0x1
+00000040  D2E4              shl ah,cl
+00000042  80F4FF            xor ah,0xff
+00000045  E421              in al,0x21
+00000047  20E0              and al,ah
+00000049  E621              out 0x21,al
+0000004B  90                nop
+0000004C  FF35F60200C0      push dword [dword 0xc00002f6]
+00000052  E8856D0000        call dword 0x6ddc
+00000057  EBFE              jmp short 0x57
+00000059  0000              add [eax],al
+0000005B  0000              add [eax],al
+0000005D  0000              add [eax],al
+0000005F  0000              add [eax],al
+00000061  FF                db 0xFF
+00000062  FF00              inc dword [eax]
+00000064  0000              add [eax],al
+00000066  9ACF00FFFF0000    call dword 0x0:0xffff00cf
+0000006D  0092CF001700      add [edx+0x1700cf],dl
+00000073  59                pop ecx
+00000074  0000              add [eax],al
+00000076  C050B011          rcl byte [eax-0x50],0x11
+0000007A  E620              out 0x20,al
+0000007C  B011              mov al,0x11
+0000007E  E6A0              out 0xa0,al
+00000080  B020              mov al,0x20
+00000082  E621              out 0x21,al
+00000084  B028              mov al,0x28
+00000086  E6A1              out 0xa1,al
+00000088  B004              mov al,0x4
+0000008A  E621              out 0x21,al
+0000008C  B002              mov al,0x2
+0000008E  E6A1              out 0xa1,al
+00000090  B001              mov al,0x1
+00000092  E621              out 0x21,al
+00000094  B001              mov al,0x1
+00000096  E6A1              out 0xa1,al
+00000098  58                pop eax
+00000099  C3                ret
+0000009A  60                pushad
+0000009B  668CD8            mov ax,ds
+0000009E  50                push eax
+0000009F  66B81000          mov ax,0x10
+000000A3  8ED8              mov ds,ax
+000000A5  8EC0              mov es,ax
+000000A7  8EE0              mov fs,ax
+000000A9  8EE8              mov gs,ax
+000000AB  E8856C0000        call dword 0x6d35
+000000B0  58                pop eax
+000000B1  8ED8              mov ds,ax
+000000B3  8EC0              mov es,ax
+000000B5  8EE0              mov fs,ax
+000000B7  8EE8              mov gs,ax
+000000B9  61                popad
+000000BA  81C408000000      add esp,0x8
+000000C0  FB                sti
+000000C1  CF                iretd
+000000C2  FA                cli
+000000C3  6A00              push byte +0x0
+000000C5  6A00              push byte +0x0
+000000C7  EBD1              jmp short 0x9a
+000000C9  FA                cli
+000000CA  6A00              push byte +0x0
+000000CC  6A01              push byte +0x1
+000000CE  EBCA              jmp short 0x9a
+000000D0  FA                cli
+000000D1  6A00              push byte +0x0
+000000D3  6A02              push byte +0x2
+000000D5  EBC3              jmp short 0x9a
+000000D7  FA                cli
+000000D8  6A00              push byte +0x0
+000000DA  6A03              push byte +0x3
+000000DC  EBBC              jmp short 0x9a
+000000DE  FA                cli
+000000DF  6A00              push byte +0x0
+000000E1  6A04              push byte +0x4
+000000E3  EBB5              jmp short 0x9a
+000000E5  FA                cli
+000000E6  6A00              push byte +0x0
+000000E8  6A05              push byte +0x5
+000000EA  EBAE              jmp short 0x9a
+000000EC  FA                cli
+</code>
+
+<p>
+So if EIP=0xC000000A7 corresponds to instruction 0xA7 above, then the
+problematic assembler would appear to be: 
+</p>
+
+<code>
+flush:
+        mov ax,data_selector
+        mov ds,ax
+        mov fs,ax
+</code>
+
+<p>
+But this is before the added nop.  What?  Does this mean adding an extra
+instruction throws off some alignments?  Or that the space we've left is too
+small and there is 
+</p>
+
+<p>
+But also weird is that when we include the auxilliary files in the orders: 
+</p>
+
+<code>
+%include 'init/isr.asm'
+%include 'init/pic.asm'
+%include 'init/idt.asm'
+</code>
+
+<p>
+or 
+</p>
+
+<code>
+%include 'init/pic.asm'
+%include 'init/isr.asm'
+%include 'init/idt.asm'
+</code>
+
+<p>
+it works, whereas the order
+</p>
+
+<code>
+%include 'init/isr.asm'
+%include 'init/idt.asm'
+%include 'init/pic.asm'
+</code>
+
+<p>
+does not.  WHAT!?  
+</p>
+
+<p>
+This strongly suggests an alignment issue, but of what?  And why then does
+adding 2 or 4 or 16 nops not work?  While we're thinking, we can try some
+things like adding nops in clever places to bisect where the alignment is
+important (if anywhere).  We begin by putting the order as 
+</p>
+
+<code>
+%include 'init/pic.asm'
+%include 'init/isr.asm'
+%include 'init/idt.asm'
+</code>
+
+<p>
+-At start of isr.asm: OK (!?)
+</p>
+
+<p>
+Putting it anywhere in the pic_remap routine seems to kill it, whereas
+anywhere after the ret for this routine seems to survive.  What?  
+</p>
+
+<p>
+234531
+</p>
+
+</text>
+</post>

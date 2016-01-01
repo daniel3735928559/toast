@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Kernel Struct Allocator" date="20090826:181618">
+<tag name="plan" />
+<tag name="malloc" />
+<text>
+
+<p>
+Now we come to the first thing requiring a block of honestly new code--the
+struct allocator.  We reproduce from earlier the list of structs decided on
+for the kernel API, though we want to make our code sufficiently general that
+it can be generalized on a whim if needed.  
+</p>
+
+<code>
+      event_t
+         int UID;
+	 continuation_t *handlers;
+
+      connection_t
+         int UID;
+	 event_t *rcv;
+	 event_t *send;
+	 void *rx_buf_start;
+	 void *tx_buf_start;
+	 int rx_buf_size;
+	 int tx_buf_size;
+
+      node_t
+	 int UID;
+	 pagedir_t *page_dir;
+
+      continuation_t
+         int UID;
+	 tss_t TSS;
+         node_t *node;
+	 int EIP;
+
+      vp_t
+         int UID;
+         node_t current;
+</code>
+
+<p>
+The obvious way of doing this would be to store each allocated struct in
+its own fixed-size block (to make the `heap' management easy) indexed by an imap (to
+make for easy freeing and allocating).
+</p>
+
+<p>
+Hopefully the imap code is sufficiently general to handle this with no further
+work, but we shall see.  
+</p>
+
+<p>
+27:025005
+</p>
+
+</text>
+</post>

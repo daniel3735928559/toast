@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Tasking" date="20090928:131338">
+<tag name="plan" />
+<tag name="tasking" />
+<text>
+
+<p>
+What should our tasking API look like?  Pretty clearly we want a way of
+loading and of dumping nodes, and then of switching to a given node, but
+surely these things are easy?  
+</p>
+
+<code>
+typedef struct node
+{
+  u32 UID;
+  u32 esp;
+  u32 kesp;
+  u32 ebp;
+  u32 eip;
+  u32 pagedir_physical;
+  pagedir_t *pagedir;
+  node_t *prev;
+  node_t *next;
+} node_t;
+
+u32 pid = 0;
+kheap_t node_heap;
+node_t *last_node;
+node_t *first_node;
+node_t *current_node;
+u32 test;
+
+void tasking_init(){
+   node_heap = heap_init(heap_create(), ...)
+}
+
+node_t *make_node(){
+   node_t *node = (node_t *)(heap_alloc(node_heap));
+   node->UID = ++pid;
+   node->esp = (u32)(heap_alloc(stack_heap));
+   node->kesp = (u32)(heap_alloc(stack_heap));
+   node->ebp = node->esp;
+   u32 test = 0;
+   node->eip = 0;//OR: node->eip = get_eip(&amp;test);
+   //if(test == 1){
+      test = 0;
+      node->pagedir = pagedir_new(&amp;(node->pagedir_physical), 1, 1);
+      node->next = first_node;
+      first_node = node;
+      return node;
+   //}
+   //else return 0;
+}
+
+void dump_node(node_t *node){
+   if(node->next != NULL) node->next->prev = node->prev;
+   else last_node = node->prev;
+   if(node->prev != NULL) node->prev->next = node->next;
+   else first_node = node->next;
+   heap_free(stack_heap, node->esp);
+   heap_free(stack_heap, node->kesp);
+   pagedir_dump(node->pagedir);
+   heap_free(node_heap, node);
+}
+
+void switch_to_node(node_t *node){
+   u32 esp, ebp, eip = get_eip(&amp;test), cr3;
+
+   asm volatile("mov %%esp, %0" : "=r"(esp));
+   asm volatile("mov %%ebp, %0" : "=r"(ebp)); 
+   current_node->esp = esp;
+   current_node->ebp = ebp;
+   current_node->eip = eip;
+
+   eip = node->eip;
+   esp = node->esp;
+   ebp = node->ebp;
+   cr3 = node->pagedir_physical;
+
+   asm volatile("          \
+      cli;                 \
+      mov %0, %%ecx;       \
+      mov %1, %%esp;       \
+      mov %2, %%ebp;       \
+      mov %3, %%cr3;       \
+      sti;                 \
+      jmp *%%ecx           "
+      : : "r"(eip), "r"(esp), "r"(ebp), "r"(cr3));
+}
+
+u32 get_eip(u32 *test_value){
+   *test_value = 1;
+   return asm_get_eip();
+}
+</code>
+
+<p>
+Or something like that.  Worries include what happens when we switch to node
+and store the value of eip in the struct and then jump to it we need to know
+whether we just returned from get_eip() or whether we just jumped there from
+the switch_to_node function.  Things like this, but this seems like a start.  
+</p>
+
+<p>
+185930
+</p>
+
+</text>
+</post>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="TSS Stage 1" date="20090902:110150">
+<tag name="gdb" />
+<tag name="tasking" />
+<tag name="qemu" />
+<text>
+
+<p>
+After doing the aforementioned, we load up QEMU and check in the monitor: 
+</p>
+
+<code>
+(qemu) info registers
+...
+TR =002b c0000360 000003c8 c040e900
+GDT=     c000004b 0000002f
+...
+
+(qemu) x/12 0xc000004b
+
+c000004b: 0x00000000 0x00000000 0x0000ffff 0x00cf9a00
+c000005b: 0x0000ffff 0x00cf9300 0x0000ffff 0x00cffa00
+c000006b: 0x0000ffff 0x00cff200 0x036003c8 0xc040eb00
+</code>
+
+<p>
+Where the TSS entry in this GDT is therefore 0x036003c8 0xc040eb00
+</p>
+
+<p>
+Reconstructing the address by first fixing endianness: 
+</p>
+
+<code>
+c8 03 60 03 00 eb 40 c0
+</code>
+
+<p>
+and then piecing back together from the above table: 
+</p>
+
+<code>
+start: c0000360
+end: ???003c8
+</code>
+
+<p>
+which concurs with what we see when we pass the tss_start and tss_end as
+parameters to the kernel (and we also see that the starting values of e9 40 were
+not trashed either, except for e9->eb, i.e. read-only bit gets set...what?).  
+</p>
+
+<p>
+There is concern that maybe the limit value is not supposed to be the high
+value, particularly as this doesn't fit, but we'll see if there are any
+problems.  
+</p>
+
+<p>
+112644
+</p>
+
+</text>
+</post>

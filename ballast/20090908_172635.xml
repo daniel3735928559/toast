@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Tasking and Allocator II" date="20090908:172635">
+<tag name="plan" />
+<tag name="malloc" />
+<tag name="tasking" />
+<text>
+
+<p>
+Implementing multitasking is the first instance in which we seriously need to
+use our allocator, which leads to some further thoughts on this front: 
+</p>
+
+<p>
+The structs we are allocating are of different but fixed sizes, so a feature
+that seems handy at least for a small kernel's kernel-space allocator such as
+this but indeed possibly for many object-based userspace applications as well
+is to have the allocator interface allow for individual applications (and,
+importantly, individual parts of the kernel) to request `heaps' that allow for
+allocation of fixed-size blocks.  E.g., the tasking-manager can have one heap
+for allocating 4096-byte blocks for paging structs and another for allocating
+sizeof(node_t)-sized blocks for nodes, etc.  
+</p>
+
+<p>
+This could allow us to implement a simple sort of state-caching as described
+by Bonwick (1994, USENIX Summer, 87-98), if desired as well.  
+</p>
+
+<p>
+That having been said, the actual set of procedures involved with multitasking
+is rather basic: 
+</p>
+
+<code>
+new_task: 
+  create new page-table with kernel-mappings already in place
+  create page tables for task
+  allocate node_t struct and requisite event_t/conn_t structs
+  map in specified regions for task and load it there
+  fill the node_t struct as required
+</code>
+
+<code>
+unload_task:
+  dump all structs referenced in the corresponding node_t
+</code>
+
+<code>
+switch_task:
+  switch pagedirs and jump to the entry address of the new task
+</code>
+
+<p>
+After our brief break of sleeplessness and worrying about the allocator, we're
+off!  
+</p>
+
+<p>
+09:005755
+</p>
+
+</text>
+</post>

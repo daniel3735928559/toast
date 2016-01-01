@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Usermode" date="20090902:183138">
+<tag name="debug" />
+<tag name="userland" />
+<tag name="qemu" />
+<text>
+
+<p>
+All the scaffolding for getting into usermode seems to now be in place, but
+the actual switch causes a triple fault (though admittedly QEMU reports that
+this occurs in CPL=3).  More precisely: 
+</p>
+
+<code>
+qemu: fatal: triple fault
+EAX=00000246 EBX=0000d040 ECX=000000ff EDX=00000004
+ESI=ffff7c2b EDI=000882d9 EBP=0008ffc4 ESP=0008ffc4
+EIP=c000309a EFL=00000202 [-------] CPL=3 II=0 A20=1 SMM=0 HLT=0
+ES =0023 00000000 ffffffff 00cff300
+CS =001b 00000000 ffffffff 00cffa00
+SS =0023 00000000 ffffffff 00cff300
+DS =0023 00000000 ffffffff 00cff300
+FS =0023 00000000 ffffffff 00cff300
+GS =0023 00000000 ffffffff 00cff300
+LDT=0000 00000000 0000ffff 00008200
+TR =002b c0000380 00000068 c040e900
+GDT=     c000004b 0000002f
+IDT=     c000024f 00000117
+CR0=e0000011 CR2=000003e4 CR3=00046000 CR4=00000000
+CCS=00000044 CCD=00000246 CCO=EFLAGS
+FCW=037f FSW=0000 [ST=0] FTW=00 MXCSR=00001f80
+FPR0=0000000000000000 0000 FPR1=0000000000000000 0000
+FPR2=0000000000000000 0000 FPR3=0000000000000000 0000
+FPR4=0000000000000000 0000 FPR5=0000000000000000 0000
+FPR6=0000000000000000 0000 FPR7=0000000000000000 0000
+XMM00=00000000000000000000000000000000 XMM01=00000000000000000000000000000000
+XMM02=00000000000000000000000000000000 XMM03=00000000000000000000000000000000
+XMM04=00000000000000000000000000000000 XMM05=00000000000000000000000000000000
+XMM06=00000000000000000000000000000000 XMM07=00000000000000000000000000000000
+Aborted
+</code>
+
+<p>
+The usermode code is: 
+</p>
+
+<code>
+   asm volatile("  \
+     cli; \
+     mov $0x23, %ax; \
+     mov %ax, %ds; \
+     mov %ax, %es; \
+     mov %ax, %fs; \
+     mov %ax, %gs; \
+                   \
+     mov %esp, %eax; \
+     pushl $0x23; \
+     pushl %eax; \
+     pushf; \
+     pop %eax; \
+     or $0x200, %eax; \
+     push %eax; \
+     pushl $0x1B; \
+     push $1f; \
+     iret; \
+   1: \
+     hlt; \
+     ");
+</code>
+
+<p>
+If we remove the hlt, then the triple fault report looks like: 
+</p>
+
+<code>
+qemu: fatal: triple fault
+EAX=00000246 EBX=0000d040 ECX=000000ff EDX=00000004
+ESI=ffff7c2b EDI=000882d9 EBP=0008ffec ESP=0008ffcc
+EIP=c000339d EFL=00000202 [-------] CPL=3 II=0 A20=1 SMM=0 HLT=0
+ES =0023 00000000 ffffffff 00cff300
+CS =001b 00000000 ffffffff 00cffa00
+SS =0023 00000000 ffffffff 00cff300
+DS =0023 00000000 ffffffff 00cff300
+FS =0023 00000000 ffffffff 00cff300
+GS =0023 00000000 ffffffff 00cff300
+LDT=0000 00000000 0000ffff 00008200
+TR =002b c0000380 00000069 c0408900
+GDT=     c000004b 0000002f
+IDT=     c000024f 00000117
+CR0=e0000011 CR2=000003e4 CR3=00046000 CR4=00000000
+CCS=00000044 CCD=00000246 CCO=EFLAGS
+FCW=037f FSW=0000 [ST=0] FTW=00 MXCSR=00001f80
+FPR0=0000000000000000 0000 FPR1=0000000000000000 0000
+FPR2=0000000000000000 0000 FPR3=0000000000000000 0000
+FPR4=0000000000000000 0000 FPR5=0000000000000000 0000
+FPR6=0000000000000000 0000 FPR7=0000000000000000 0000
+XMM00=00000000000000000000000000000000 XMM01=00000000000000000000000000000000
+XMM02=00000000000000000000000000000000 XMM03=00000000000000000000000000000000
+XMM04=00000000000000000000000000000000 XMM05=00000000000000000000000000000000
+XMM06=00000000000000000000000000000000 XMM07=00000000000000000000000000000000
+Aborted
+</code>
+
+<p>
+If we hlt just before the iret, we see eip = 0xc000309a.  If we stick a nop in
+rather than a hlt, the eip for the triple fault changes to 0xc000339e, which,
+disassembling in gdb (after changing the nop to a hlt, so that hopefully 0xc000339e
+is still where it would have faulted, assuming hlt and nop are the same size),
+we see: 
+</p>
+
+<code>
+0xc000339e:     int    $0x22
+0xc00033a0:     leave
+0xc00033a1:     ret
+</code>
+
+<p>
+Hmm.  What if we hlt in kernel.c after calling usermode?  Ah, no, stupid
+idea--userland cannot hlt.  If we spin (jmp $) after calling usermode,
+everything seems to work fine.  In fact, if we save the stack pointer as what
+it was when we initize the tss by doing: 
+</p>
+
+<code>
+  u32 espv;
+  asm volatile("mov %%esp, %0": "=r"(espv));
+  tss_init((tss_entry_t *)tss_start, 0x10, espv);
+</code>
+
+<p>
+then we don't get the triple-faulting, and if we don't int 0x22 after
+switching to userland, info registers indicates we are in CPL=3 (and this
+remains true even after typing stuff on the keyboard).  
+</p>
+
+<p>
+Unclear, but the same behaviour is observed on RHW (after a scare with some
+RAM registering as unreadable or something: 
+</p>
+
+<p>
+First boot says: 
+</p>
+
+<p>
+`The amount of system memory has changed (read at 0x4000000 was -------- and
+not --------- (or something)'
+</p>
+
+<p>
+Switch RAM slots.  
+</p>
+
+<p>
+Second boot says: 
+</p>
+
+<p>
+`The amount of system memory has changed'
+</p>
+
+<p>
+(Unclear if this means it has changed from the decreased value after the
+previous boot or just noting that the RAM had changed slots or what.)  
+</p>
+
+<p>
+Third boot proceeds as normal.  
+</p>
+
+<p>
+Just something to bear in mind.  
+</p>
+
+<p>
+But the fact that it works fine here at least shows the ramdisk works properly
+on RHW as well (e.g. it doesn't assume zeroed memory unreasonably and
+suchlike).  
+</p>
+
+<p>
+224602
+</p>
+
+</text>
+</post>

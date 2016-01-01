@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Practical Thoughts" date="20090817:011230">
+<tag name="plan" />
+<tag name="ipc" />
+<text>
+
+<p>
+All told, we'd like a decently clean architecture underlying the end-product,
+but given we have an idea of the functionality and perhaps just want to
+ensure longevity (or something) by making the base API both maximally
+straightforward and maximally expressive, we'll run with the current idea of
+using events and connections and running continuations on virtual processors
+and so on and stop quibbling about the exact theoretical details.  This will
+work, and we can clean up later if it comes to that.  
+</p>
+
+<p>
+There are pros and cons, and there is room for endless weighing and modifying
+the various abstractions heretofore mentioned, but the time to actually
+implement anything grows limited and so we will worry less about such matters
+(fun though they be) until we have an actual product and work on honest
+production from now until October.  
+</p>
+
+<p>
+To this end, consider the motivating example we have held throughout: 
+</p>
+
+<p>
+We have a text editor that exposes its interface to the user via a shell.
+The text editor publishes its interface descriptor which is then read by the
+shell, which sets up its list of valid commands and variables accordingly, and
+establishes a (privileged) connection with the software.  
+</p>
+
+<p>
+If, for example, the user has been editing in hex mode and wishes to send his
+file as a packet, then the shell can be made to import the TCP/IP stack's
+interface by some `import' command, which will allow the use of its commands
+(e.g. 'net.send_UDP(TextEditor.rawData, 123.456.789.0)') for this purpose.  
+</p>
+
+<p>
+What goes on behind this is the setting up of connections (which allow two-way
+communication between nodes) and using the connections by firing corresponding
+events (e.g. `data received on connection 267', etc.).  
+</p>
+
+<p>
+More details can be fleshed out later, but this is the gist of it, and makes
+it somewhat clear that the abstractions of events and two-way connections will
+likely suffice, and so our goal now is to work out APIs for these and then to
+implement them.  
+</p>
+
+<p>
+124604
+</p>
+
+</text>
+</post>

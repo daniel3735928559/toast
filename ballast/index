@@ -1,0 +1,73 @@
+20090316:120950:Where have we got to thus far? 
+20090325:180200:PCI Enumeration
+20090326:130000:More RTL8029 bashing and multitasking stuff
+20090327:230514:Updates and stuff
+20090328:023720:Hacky-Stack
+20090328:031031:Multitasking and IPC again
+20090328:041651:Ramdisk again
+20090328:124832:Ramdisk and stack solutions, Part I
+20090329:193933:Getting there
+20090330:133825:More hh fun--GDT mapping
+20090330:221308:I might actually be that stupid
+20090331:013234:Going...
+20090331:122237
+20090331:170037:I'm an idiot II
+20090331:223038:QEMU+GDB
+20090401:001731:Counting
+20090401:015050:General thoughts
+20090401:210121:Hmph
+20090402:041041:I'm an IDIOT
+20090402:173522:Where are we now?
+20090404:135816:Kernel Structures
+20090406:210327:IPC Again
+20090407:012653:Kernel Struct Logic
+20090413:165452:Reboot
+20090627:014651:Reboot II
+20090709:202629:Details details details...
+20090817:011230:Practical Thoughts
+20090818:181932:A Refresher in the Details and a Plan for Victory
+20090822:0045??:Going
+20090822:011611:Going
+20090822:013522:Going
+20090822:032014:Going
+20090822:210823:Going insane
+20090823:030654:Going
+20090823:225943:Going
+20090824:111655:Schedule
+20090824:150154:Moving the Kernel Loader into Stage 2
+20090824:170842:On kalloc
+20090825:130515:Paging
+20090825:131706:Paging on RHW
+20090825:183814:Paging idiocy--the dangers of uninitialized memory
+20090826:181618:Kernel Struct Allocator
+20090827:040751:Allocator I
+20090827:125220:Allocator testing
+20090830:183228:Allocator and Ramdisk
+20090830:193019:Ramdisk Issues
+20090831:171104:Ramdisk Insanity
+20090901:015929:Ramdisk Working... Maybe...
+20090902:053909:Userland Homework
+20090902:110150:TSS Stage 1
+20090902:183138:Usermode
+20090902:235555:Usermode GPF
+20090903:001200:More on the GPF
+20090908:172635:Tasking and Allocator II
+20090909:133333:Alligator II (continued)
+20090909:182759:Alligator III--A heap of heaps!
+20090910:212111:A brief note about non-urgent TODOs
+20090922:034805:Alligator; Physmem Mgr within Vmem Mgr
+20090928:131338:Tasking
+20091209:163652:BACK AGAIN!
+20091210:173530:Allocator Remix
+20091212:021655:Allocator Things
+20091212:115353:Function Pointers Note
+20091212:160212:Testing
+20091219:143434:What to do
+20091222:140355:RAM Moving
+20091223:233710:Allocator Testing
+20091224:011755:Things to Allocate
+20091226:201255:Reworking Paging
+20091227:015300:Physical and Vitrual Allocators' Interactions
+20100628:142613:Reboot, plus ...Toppings!
+20100629:194904:Multitasking!
+20100630:Tasking and IPC!

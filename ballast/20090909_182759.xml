@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Alligator III--A heap of heaps!" date="20090909:182759">
+<tag name="map" />
+<tag name="malloc" />
+<text>
+
+<p>
+An issue has arisen!  Where do we put the heaps we are allocating things in?
+The evident answer is to have a heap for the heap structs.  But how do we make
+this heap?  The answer is to kmalloc space for just that one heap (and
+free-stack, which may in fact be rather large...) and then call not a `create'
+function, but an initialize function on the pre-allocated struct (and such a
+function should be made available for most of the data-structure types
+anyway).  
+</p>
+
+<p>
+231823
+</p>
+
+</text>
+</post>

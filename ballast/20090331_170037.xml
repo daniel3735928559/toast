@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="I'm an idiot II" date="20090331:170037">
+<tag name="whinge" />
+<tag name="bootloader" />
+<text>
+
+<p>
+The $64,000 question is: True or false.  0x8E00 is divisible by 0x1000.  
+</p>
+
+<p>
+Me: True!
+</p>
+
+<p>
+!?!???!!?!??!
+</p>
+
+<p>
+Paging works now.  Note to future self: align 0x1000 in the asm does alignment
+at assembly time, so if you then link at 0x7E00, say, it's not gonna be 4K
+aligned in RAM!  
+</p>
+
+<p>
+Now let's see if that jumping business works.  
+</p>
+
+<p>
+TRIPLE FAULT!
+</p>
+
+<p>
+There was that whole `lea' deal.  We now look into that...
+</p>
+
+<p>
+Got bochs running.  It says the problem is that the page for 0xC010000 is not
+present.  I have a bad record with these page-mapping deals.  We'll see what
+idiocy has given rise to this latest waste of many hours...
+</p>
+
+<p>
+200846
+</p>
+
+
+</text>
+</post>

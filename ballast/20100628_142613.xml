@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Reboot, plus ...Toppings!" date="20100628:142613">
+<tag name="plan" />
+<tag name="ipc" />
+<text>
+
+<p>
+We have until 20100704 to get something done, so it's time to reboot!
+</p>
+
+<p>
+First, the current problem is to setup multitasking (essentially, more
+fiddling with paging code), and then to get IPC working.  
+</p>
+
+<p>
+However, because kernels are uninteresting, functionally, it does to mention
+what we look to place on top of the kernel structure at the end of the day.  
+</p>
+
+<p>
+The broad idea is the admittedly hackneyed `Separate form from function'.
+This sort of thing is readily accomplished in the web-app world, where the
+split of XML/XSLT for content and CSS for form works wonderfully.  However the
+much cooler `rich' desktop applications have no such canonical method for
+achieving this separation.  Indeed, while OOP methods might provide some help,
+it is questionable whether there is any real method at all.  And the point is
+not just to satisfy some astronaut's notional aesthetic, but to provide--and
+apologies for another buzzword--interoperability.  
+</p>
+
+<p>
+There is one place on your computer that you can get any reasonable kind of
+interoperability between programs--the shell.  You can take your 800 photos of
+your cute little kitty, scale them all down, email the first 30 to a friend,
+email only even-numbered ones to your mom, set them all into a webpage, and
+set a video of said kitten to play in 10 hours when you plan on waking up, all
+without having to pray that some UI-dsigner will have thought to allow you to
+do some of these things.  
+</p>
+
+<p>
+This is only possible because of programs like ImageMagick's convert, and
+mailx, and sed, and programs that provide an interface through the shell.
+However, suppose you were not a fan of ImageMagick's shrinking algorithm and
+wanted instead to use Photoshop's.  Photoshop is one of those `rich' apps, so
+you are unceremoniously dumped back into the days of drag-and-dropping 800
+files, waiting while it loads them up, displays all of them (even though you
+don't care to see them particularly right now), and then 800 times navigating
+a fiddly series of triply-nested menus to get to the effect you want, at which
+point you are feeling a bit like a computer yourself for all the mind-numbing
+repetetiveness.  
+</p>
+
+<p>
+Sure, there might be keyboard shortcuts to make each iteration faster.  There
+might even be a custom scripting-language embedded somewhere deep in the
+help-files that just might have been done sensibly enough to allow you to do
+exactly what you want.  But the shortcuts are just a band-aid, and let's face
+it--writing a programming language is hard, and it is unreasonable to ask that
+every developer team everywhere understand syntax trees (not least because
+learning 50 proprietary scripting languages is not a particularly exciting
+prospect), so the second solution isn't really satisfactory either.  
+</p>
+
+<p>
+This issue is what we circumvent by separating form from function in rich
+apps, but only if we do so in a consistent way (as per the XML/CSS pair,
+rather than the application-specific ways achieved by the many OOP solutions,
+which, let's face it, are mere architectural niceties).
+</p>
+
+<p>
+What we propose is first of all, the obvious: Split off--that is, make a
+separate entity (e.g. a separate file)--the functional part of the
+application.  The shrinking and blurring and skewing code in Photoshop would
+now act merely on byte arrays (or whatever) without worrying about displaying
+the result.  Indeed, the code for displaying the result wouldn't even be in
+the same binary (And, for that matter, if I had my way, wouldn't be in the
+binary at all).  
+</p>
+
+<p>
+So our picture so far is: 
+</p>
+
+<code>
+                   -------
+                   | GUI |
+                   -------
+----------------
+| PS Functions |
+----------------   ---------
+                   | Shell |
+                   ---------
+</code>
+
+
+<p>
+But wait!  We want to actually use that code!  What good is it locked up alone
+in some cold, dark, lonely binary?  Right, so we need a way of talking to
+it--of calling the functions stored in there.  Well, when the application is
+loaded, we can talk to it via IPC, so the functions in the program should all
+be callable via IPC.  
+</p>
+
+<p>
+But wait!  You can't just tell me that the functions are `somehow' accessible.
+You've got to tell me how to access them!  Right, but it depends on how you
+want to access them.  I think we've made a reasonable case that, at some
+point, you'll want to use a shell, but submit that GUIs have their uses.  Some
+people want to be able to control their computers through speech or brainwaves
+or magic packets.  So, we need to think of each possible interface that we
+care to support--shell, GUI, brainwaves, network.  Say we start with the
+shell.  So we need to describe to the shell in a way it understands (e.g. an
+XML-formatted interface descriptor, formatted in a way defined by the shell),
+the functions available in the package and how to call them.  For instance,
+say we have the (pseudocode) program: 
+</p>
+
+<code>
+function doStuff(String str){
+   print "Look at me "$str"!  I\'m doing stuff!";
+   return -78;
+}
+
+function doOtherStuff(String str, int i){
+   print "My name is "$str" and I am "$i" years old!";
+}
+
+function recv(int[] msg){
+   int sender_pid = msg[0];
+   int func = msg[1];
+   if(func == 52){
+      send(doStuff((char *)msg[2]), sender_pid);
+   }
+   else if(func == 101){
+      send(doOtherStuff((char *)(msg[2]), (int)(msg[3])), sender_pid);
+   }
+}
+</code>
+
+<p>
+And the interface descriptor: 
+</p>
+
+<p>
+stuff_bash.idf
+</p>
+
+<code>
+&lt;node path="/usr/bin/stuff">
+   &lt;function>
+      &lt;name>hello&lt;/name>
+      &lt;arg name="myname">String&lt;/arg>
+      &lt;msg>52,./myname&lt;/msg>
+   &lt;/function>
+   &lt;function>
+      &lt;name>who&lt;/name>
+      &lt;arg name="arg1">String&lt;/arg>
+      &lt;arg name="age">int&lt;/arg>
+      &lt;msg>101,./arg1,./age&lt;/msg>
+   &lt;/function>
+&lt;/node>
+</code>
+
+<p>
+Then we could be in the special shell that understands this format and go: 
+</p>
+
+<code>
+$ import stuff
+$ funcs stuff
+hello
+who
+$ hello mommy
+Look at me mommy!  I\'m doing stuff!
+$ who Adrian 12
+My name is Adrian and I am 12 years old!
+$ 
+</code>
+
+<p>
+Fine and dandy, but what about a GUI?  Just as easy.  You just need a GUI that
+understands some sort of similarly formatted thing.  For instance: 
+</p>
+
+<p>
+stuff_GUI.idf
+</p>
+
+<code>
+&lt;target name="myshell" version="1.1" />
+&lt;node path="/usr/bin/stuff">
+   &lt;panel layout=flow>
+      &lt;textfield name="myname" size="400x100" />
+      &lt;textfield name="myage" allowed="0123456789" size="200x100" />
+      &lt;textfield name="password" echo="*" size="500x100" />
+      &lt;button size="200x100" text="Hello!">
+         &lt;click>52,(../myname/text)&lt;/click>
+      &lt;/button>
+      &lt;button size="200x100" text="Whee!">
+         &lt;click>101,(../myname/text),(int)(../myage/text)&lt;/click>
+      &lt;/button>
+&lt;/node>
+</code>
+
+<p>
+Possibly allowing some kind of XPath-aware Javascript-flavoured language into
+the mix may be needed to achieve sufficient power, but either way.
+</p>
+
+<p>
+So we get the picture: 
+</p>
+
+<p>
+</p>
+
+<code>
+                   --------------     -------
+               |===|stuff_GUI.id|=====| GUI |
+               |   --------------     -------
+----------------
+| PS Functions |
+----------------   ----------------   -------
+               |===|stuff_shell.id|===|shell|
+                   ----------------   -------
+</code>
+
+<p>
+</p>
+
+<p>
+Then, at worst, if you were given a useful program whose programmer neglected
+to include an idf compatable with your favourite shell, then you'd still be
+able to see what are the messages used and could send the appropriate messages
+directly from your shell (assuming it has direct IPC functionality).  
+</p>
+
+<p>
+And if you wanted to create a new sort of interface altogether, you could
+support pre-existing programs by batch-converting an appropriately informative
+existing id file into the id format your interface understands (as there
+should be protections to prevent idf-sharing, lest we get nasty descriptor
+files containing information for two different interfaces, which would be
+obnoxious).
+</p>
+
+<p>
+Also, today is perfect-day!
+</p>
+
+<p>
+Additionally, this solves an actual problem as well--that of distributing rich
+applications: If we believe the idf format is safe to run anywhere, then we
+note that for standard webpage `applications', this is all there is to it
+anyways.  In some cases the functionality binary (or script or whatever) can
+be stored and run server-side, with only the interface being given to the
+cleint, and the advantages (in distributability, etc.) of web-apps are
+recovered.
+</p>
+
+<p>
+160853
+</p>
+
+</text>
+</post>

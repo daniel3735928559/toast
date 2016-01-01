@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Paging" date="20090825:130515">
+<tag name="debug" />
+<tag name="paging" />
+<text>
+
+<p>
+We now attempt to fix the paging problem.  So far, we have the following
+mappings: 
+</p>
+
+<code>
+paging_idmap((void *)(videoram), height*width*3, 1, 0);
+paging_idmap((void *)K_STACK_PHYS, K_STACK_SIZE, 1, 0);
+paging_mapto((void *)K_DATA_PHYS, K_DATA_SIZE, (void *)0xC1000000, 1, 0);
+paging_mapto((void *)K_BASE_PHYS, K_SIZE, (void *)0xC0000000, 1, 0);
+</code>
+
+<p>
+using the definitions: 
+</p>
+
+<code>
+#define K_BASE_PHYS 0x10000
+#define K_DATA_PHYS 0x30000
+#define K_DATA_SIZE 0x400000
+#define K_STACK_PHYS 0x60000
+#define K_STACK_SIZE 0x3000
+#define K_SIZE 0x400000
+</code>
+
+<p>
+The physical address of the PD appears to be 0x46000 (as we've started the
+kernel's data area in physical RAM at 0x30000, though this still seems a bit
+excessive in terms of usage... we can try to cut down a bit by allocating
+aligned blobs separately or something, but this is something to worry about
+later.  
+</p>
+
+<p>
+In the meanwhile, we inspect the physical memory situation through QEMU's
+monitor (Ctrl+Alt+2 in QEMU).  This tells us that 
+</p>
+
+<code>
+0x46000: 0x4A007
+0x46C00: 0x4E007
+0x46C10: 0x4C007
+</code>
+
+<p>
+and...no mapping for the stack at...wait.  I AM STUPID!
+</p>
+
+<p>
+We correct to
+</p>
+
+<code>
+#define K_STACK_PHYS 0x80000
+#define K_STACK_SIZE 0x10000
+</code>
+
+<p>
+and it works.  Blah.  
+</p>
+
+<p>
+131520
+</p>
+
+</text>
+</post>

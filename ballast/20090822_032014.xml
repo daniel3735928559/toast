@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Going" date="20090822:032014">
+<tag name="debug" />
+<tag name="bootloader" />
+<text>
+
+<p>
+IDT/IVT seems to be broken--pressing keys leads to triple fault...
+</p>
+
+<p>
+032036
+</p>
+
+</text>
+</post>

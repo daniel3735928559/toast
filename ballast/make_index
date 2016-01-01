@@ -1,0 +1,10 @@
+rm *~
+(echo '<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<index>';
+cat intro.xml;
+for x in `ls | grep xml | grep -v index.xml`; do xsltproc --stringparam url $x index.xsl $x; done
+echo '</index>') | tee index.xml
+
+ls | grep -v '~$' > .www_manifest
+echo .htaccess >> .www_manifest

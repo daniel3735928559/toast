@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Userland Homework" date="20090902:053909">
+<tag name="plan" />
+<tag name="userland" />
+<text>
+
+<p>
+Looking at manuals and tutorials and forum posts about this, there is a lot of
+very confusing information on usermode, particularly pertaining to the use of
+a TSS and to the need for possibly multiple stack frames and such here, and I
+think it would be useful to consolidate this all in an explanation of the
+process here.  
+</p>
+
+<p>
+Getting into usermode is not a problem as long as we carefully set up the
+stack with some garbage so that iret handles everything for us, this will
+work.  
+</p>
+
+<p>
+Then, we're in usermode.  A program running decides to make a syscall and
+issues an interrupt.  The processor (for whatever reason) immediately goes to
+the TSS (some intel-specific struct which keeps an entry in the GDT) and sets
+ss and esp according to the corresponding values there.  That is, the
+processor sets up a stack for the kernel based on values stored for it, and
+allows it to merrily execute whatever kernel code from the handler using this
+stack.  
+</p>
+
+<p>
+But suppose at the same time another process was running, and it also decides
+to issue a syscall.  Now another `instance' of the kernel will be running
+(either on another processor or as another set of time-slices on a single
+processor), and if it is trying to use the same stack as the first one, it
+will very likely either step on something or get stepped on.  
+</p>
+
+<p>
+What this actually looks like is this: 
+</p>
+
+<code>
+Time 1: Process 1's timeslice begins.  
+     PL = 3
+     TSS.esp = esp0
+     esp = esp1
+</code>
+
+<code>
+Time 2: Process 1 syscalled and gave control to the kernel
+     PL = 0
+     TSS.esp = irrelevant (we're in the kernel now, and any interrupts
+     	       received now will be handled without automatic messing with the
+     	       stack)
+     esp = esp0
+</code>
+
+<code>
+Time 3: The kernel did something and changed the stack
+     PL = 0
+     TSS.esp = irrelevant
+     esp = esp0+1
+</code>
+
+<code>
+Time 4: Kernel is preempted (or something) and Process 2's timeslice begins
+     PL = 3
+     TSS.esp = esp3
+     esp = esp2
+</code>
+
+<code>
+Time 5: Process 2 issues a syscall
+     PL = 0
+     TSS.esp = irrelevant
+     esp = esp3
+</code>
+
+<code>
+Time 6: Kernel does something
+     PL = 0
+     TSS.esp = irrelevant
+     esp = esp3+1
+</code>
+
+<p>
+So if process 2 had had TSS.esp = esp0 (the same TSS.esp as process 1), at
+time 6 when the kernel messes with the stack, it would have changed [esp0] and
+we got back to the thread that was preempted between times 3 and 4, the stack
+would look different from how that thread left it, which is likely to mess
+things up.  
+</p>
+
+<p>
+Thus the kernel (if it wants to be preemptable) must have, for each running
+task, a corresponding esp value that will be stuck into the TSS at the start
+of any timeslice allocated to that task so that if during that timeslice the
+task decides to syscall, the kernel will be able to run the handler under a
+valid stack and not worry about collisions.  
+</p>
+
+<p>
+So how does this TSS business actually work?  
+</p>
+
+<p>
+The TSS is some huge struct defined in the specs as something or other, but
+basically what we do is we include an entry in the GDT of the form: 
+</p>
+
+<code>
+0-15:  low 16 bits of the pointer to the top of the TSS
+16-31: low 16 bits of the pointer to the bottom of the TSS
+32-39: next 8 bits of the pointer to the bottom of the TSS
+40:    present bit
+41-42: privelege level (0-3)
+43:    1
+44:    code/data (1 = code, 0 = data)
+45:    Can lower privilege levels execute this segment
+46:    readable/writable (Data: 1 = readable, 0 = nothing, Code: 1 = Writable,
+       0 = Read-only)
+47:    Dirty
+48:    Granularity (0 = 1-byte blocks, 1 = 4KiB blocks)
+49:    Bits (1 = 32 bit, 0 = 16 bit)
+50:    0
+51:    0
+52-55: next 4 bits of the pointer to the top of the TSS
+56-63: last 8 bits of the pointer to the bottom of the TSS
+</code>
+
+<code>
+0-15:  low 16 bits of the pointer to the top of the TSS
+16-31: low 16 bits of the pointer to the bottom of the TSS
+32-39: next 8 bits of the pointer to the bottom of the TSS
+40:    1  (present)
+41-42: 00 (ring 0)
+43:    0  (???)
+44:    1  (code) (why?)
+45:    0  (only ring 0 can execute)
+46:    0  (read-only)
+47:    1  (accessed) (why?)
+48:    0  (1-byte granularity)
+49:    1  (32-bit)
+50:    0
+51:    0
+52-55: next 4 bits of the pointer to the top of the TSS
+56-63: last 8 bits of the pointer to the bottom of the TSS
+</code>
+
+<p>
+There remains the issue of how do we fill out this entry in the assembly.  
+</p>
+
+<p>
+Evidently what we shall do is to fill in as much as we can by hand and then,
+after stage2 is done and we're upstairs we fill in the final entry (using
+code) with the address of a pre-allocated block of memory in the kernel for
+the TSS.  
+</p>
+
+<p>
+Once we do this we have to 
+</p>
+
+<code>
+ltr ax
+</code>
+
+<p>
+where ax is set to (offset of TSS in GDT) | (Requested privilege level = 3).  
+</p>
+
+<p>
+(This is likely going to be 8*5 | 3 = 0x2B.)  
+</p>
+
+<p>
+We can then pass this address to the kernel, where we can associate it with a
+C pointer which we can use to manipulate it properly and take it to town from
+there.
+</p>
+
+<p>
+Sounds like a plan.  
+</p>
+
+<p>
+095222
+</p>
+
+</text>
+</post>

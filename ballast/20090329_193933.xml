@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Getting there" date="20090329:193933">
+<tag name="bootloader" />
+<tag name="higherhalf" />
+<text>
+
+<p>
+-'d elements in the todo list for higher-halfizing are done on this side of
+ the compiling/debugging process.  We'll get to testing and stuff tomorrow
+ after digging up those dump PTEs routines from a while ago.  
+</p>
+
+<p>
+In the interim, a brief rundown: Kernel loader stage 1 loads everything from
+disk to RAM in pre-defined locations that stage2 knows about.  
+</p>
+
+<p>
+Stage 2 has an asm bit that enables paging but calls a C bit (stage2c.c) to do
+the dirty work of page-mapping (being careful to make sure the PD and PTs are
+mapped into virtual memory as well!) to ensure that it uses the main kernel's
+structures for storing at least the pagedir.
+</p>
+
+<p>
+The kernel can collect all the information it needs from the pagedir
+structure, as it contains the physical address of the PD (for cr3), the
+physical addresses of the page tables (for [cr3]), and the virtual addresses
+of the page tables (for its own reference).  From this latter array it can
+read off where the tables are in its structure area (our informal name for the
+range 0xC0000000-0xC1000000, where the stack and other kernel structures will
+live), and thus, assuming these (and the ramdisk) are the only things that
+were set up (and they were), it can build a complete picture of what the
+address spaces (physical and virtual) look like.  More specifically, by
+looking at the page table it can work out what frames are used and brutally
+set the corresponding bits in the physmem imap, force it to reset its stack,
+and then we'll be all set to allocate as before.  
+</p>
+
+<p>
+Of course, then we have to be careful about how we organize the structure area
+for storing all the things, as we don't have a heap to dump everything in
+anymore (by the way, statically allocating kernel structures versus leaving
+them all in a heap was a design decision made while researching higher0half
+kernels: With a microkernel there are a very much pre-defined set of things
+the kernel will need to manage, which it can then do with simple array-type
+managers (with imaps, much like the mage allocater, actually) for each of the
+six or so things that need managing, and that's it.  A bit more complex, but
+no nasty bintree lookups clogging the IPC routines, at least.  
+</p>
+
+<p>
+OK, sleep time.  
+</p>
+
+<p>
+195213
+</p>
+
+</text>
+</post>

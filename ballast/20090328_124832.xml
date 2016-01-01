@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Ramdisk and stack solutions, Part I" date="20090328:124832">
+<tag name="map" />
+<tag name="higherhalf" />
+<tag name="ramdisk" />
+<text>
+
+<p>
+For the Ramdisk, a nasty put completely workable solution presents itself:
+Reserve a chunk in kinit.asm full of zeros, where we'll dd in the ramdisk
+image after linking (but before cat with boot.bin), and whose address we'll
+pass to kmain().  
+</p>
+
+<p>
+Output of 
+</p>
+
+<code>
+  u32 espv;
+  asm volatile("mov %%esp, %0": "=r"(espv));
+  prints("esp: ");print_hex_32(espv);prints("\n");
+  prints("vidstart: ");print_hex_32(vidstart);prints("\n");
+</code>
+
+<p>
+is 
+</p>
+
+<code>
+   esp: 8FFDC
+   vidstart: F8000000
+</code>
+
+<p>
+Should be fine, but would be nice to stick it somewhere fixed and safer.  Say
+we just map it to 0xC0002000 in virtual memory and permanently mark as
+non-present the page 0xC0000000-0xC0001000 (for stack-overflow detection).  
+</p>
+
+<p>
+If in kernel-space we always have allocated one stack-frame per node, then
+it's just a matter of bookkeeping to store all these and adjust TSS->esp0 as
+needed.  But this raises the question of how do we allocate these?  Because
+userland doesn't get to use these stacks, let's pre-map some frames to the
+area from, say, 0xC0002000 to 0xC0080000 (which should be the kernel start
+when we get to higher-halfizing) treated as an array of 0x200-byte chunks with
+tests as needed to make sure we've not got too much on the stack at any given
+time.  So we'll always have a new kernel-stack available (we'll have to
+maintain in the kernel heap a separate stack of which of these are free, which
+is nasty but also doable).  
+</p>
+
+<p>
+To the plan to organize virtual memory will be implemented as follows: 
+</p>
+
+<p>
+HIGHER-HALFIZING: 
+</p>
+
+<code>
+Loader blob 1: 
+       -512-byte bootloader.  
+       -Loaded at 0x7C00
+       -Loads `Loader blob 2' (next 2 sectors on disk) to RAM at 0xA000.  
+       -Loads ramdisk (next 20 sectors on disk) to RAM at 0x60000
+       -Loads kernel proper to RAM at 0x10000
+       -Passes control to loader blob 2.  
+</code>
+
+<code>
+Loader blob 2: 
+       -1024-byte stage2 bootloader.  
+       -Loaded and linked at 0xA000.  
+       -Set up VESA mode.
+       -Switch to pmode (set up gdt and cr0 and flush)
+       -Set stack at 0x8E000-0x8FFFF.  
+       -Set up paging structures at 0x90000-0x92FFF
+       -ID-map first 256 frames
+       -Map stack to 0xC0001000-0xC0002000
+       -Map ramdisk to 0xC0FFD000-0xC1000000
+       -Map kernel (0x10000-kernel_end) to 0xC8000000-new_kernel_end)
+       -Map page tables and pagedir upstairs compatably with the kernel defns
+       -ID-Map screen area (0xF8000000-screen_end)
+       -Enable paging
+       -Set esp, ebp to 0xC0002000
+       (Copy VESA mode info block to just before kernel)
+       -Jump to kernel, passing along 
+       	     -vidmem start pointer
+	     -page_dir pointer
+	     -ramdisk start pointer
+</code>
+
+<code>
+Kernel: 
+	-Loaded at 0x10000 in physical RAM, linked at 0xC8000000
+	Store info passed from stage2: 
+		Ramdisk start
+		Vidmem start
+	And initialize paging imap by analyzing what's been mapped already
+</code>
+
+<code>
+	Will use physical RAM from above 0x10000 for PD and PT structures.  
+	Will use virtual RAM from 0xC0002000-0xC6FFFFFF for kernel structs.
+	Kernel structures: 
+	   PTs and PDs
+	   Threads
+	   Nodes
+	   Connections
+	   Kernel Stacks (for reentrancy)
+	Multiasking: 
+	   Task struct: 
+	      UID
+	      kstack_index
+	      esp
+	      ebp
+	      eip
+	      page_dir
+	      regs
+	      next_task
+	   Loading task: 
+	      Work out where to put it
+	      Make a new stack
+	      Make a new PD, mapping in the kernel and the new stack
+	   Switching tasks: 
+	      Save current task data
+	      Load new task's data
+	IPC: 
+	   To work out later.  
+</code>
+
+<p>
+So that's the plan for what will hopefully be the final rewrite of the
+initization code.  Lez go!  
+</p>
+
+<p>
+165742
+</p>
+
+
+</text>
+</post>

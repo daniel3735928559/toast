@@ -1,0 +1,1 @@
+./make && qemu kernel.img -boot a -fda kernel.img -s

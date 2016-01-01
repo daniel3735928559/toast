@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="What to do" date="20091219:143434">
+<tag name="vesa" />
+<tag name="map" />
+<text>
+
+<p>
+What to do indeed.  We need to finish IPC and multitasking, and then cobble
+together some executable loader, and this could easily constitute a complete
+version 0.
+</p>
+
+<p>
+However, to do this we need to be entirely certain that the physmem and vmem
+allocators are working perfectly.  So the first thing to do is to test first
+the physmem allocator with some allocs and frees, and then the vmem
+allocator.  
+</p>
+
+<p>
+So our goals for this round are: 
+</p>
+
+<p>
+Reorganize RAM
+Test Allocators
+</p>
+
+<p>
+First in the reorganizing RAM, we need a better isolated esp/ebp stack.  
+</p>
+
+<p>
+The current stage2 PD/PT setup has the mappings: 
+</p>
+
+<code>
+0x00000000-0x00400000 -> 0x00000000-0x00400000 (So the current code survives)
+0x00010000-0x00410000 -> 0xC0000000-0xC0400000 (kernel)
+0x00030000-0x00430000 -> 0xC1000000-0xC1400000 (kernel data)
+[t_vidmem]-end vidmem -> [t_vidmem]-end vidmem (vidmem)
+</code>
+
+<p>
+This is of course, a bit excessive, but it is just for starters, and we throw
+away these mappings rather quickly in favour of those given in paging.c by the
+lines: 
+</p>
+
+<code>
+  #define K_BASE_PHYS 0x10000
+  #define K_DATA_PHYS 0x30000
+  #define K_DATA_SIZE 0x400000
+  #define K_RAMDISK_PHYS 0x20000
+  #define K_RAMDISK_SIZE 0x1000
+  #define K_STACK_PHYS 0x80000
+  #define K_STACK_SIZE 0x10000
+  #define K_SIZE 0x400000
+...
+  paging_idmap((void *)(videoram), height*width*3, 1, 0);
+  paging_mapto((void *)K_BASE_PHYS, K_SIZE, (void *)0xC0000000, 1, 0);
+  paging_mapto((void *)K_DATA_PHYS, K_DATA_SIZE, (void *)0xC1000000, 1, 0);
+  paging_idmap((void *)K_RAMDISK_PHYS, K_RAMDISK_SIZE, 1, 0);
+  paging_idmap((void *)K_STACK_PHYS, K_STACK_SIZE, 1, 0);
+</code>
+
+<p>
+which define the translation-mapping 
+</p>
+
+<code>
+videomem is idmapped                           (vidmem)
+0x00010000-0x00410000 -> 0xC0000000-0xC0400000 (kernel proper)
+0x00030000-0x04300000 -> 0xC1000000-0xC1400000 (kernel data)
+0x00020000-0x00021000 -> 0x00020000-0x00021000 (ramdisk)
+0x00080000-0x00090000 -> 0x00080000-0x00090000 (stack)
+</code>
+
+<p>
+However this is less than preferable, perhaps, as we see that way more than
+needed is mapped for the kernel itself, and that both the kernel and the
+kernel's data overlap severely with the stack, with the potential to squish it
+if they actually use this part of their territory.  So we decide to reorganize
+a bit more prudently, perhaps something like the following (noting that the
+current kernel is fewer than 0xC200 bytes): 
+</p>
+
+<code>
+vidmem is idmapped                             (vidmem)
+0x00010000-0x00030000 -> 0xC0000000-0xC0030000 (kernel)
+0x00030000-0x00040000 -> 0x00030000-0x00040000 (stack)
+0x00040000-0x00050000 -> 0x00040000-0x00050000 (ramdisk)
+0x000A0000-0x004A0000 -> 0xC1000000-0xC1400000 (kernel data)
+</code>
+
+<p>
+which requires an initial mapping of the form: 
+</p>
+
+<code>
+0x00000000-0x00400000 -> 0x00000000-0x00400000 (So the current code survives)
+0x00010000-0x00410000 -> 0xC0000000-0xC0400000 (kernel)
+0x000A0000-0x004A0000 -> 0xC1000000-0xC1400000 (kernel data)
+[t_vidmem]-end vidmem -> [t_vidmem]-end vidmem (vidmem)
+</code>
+
+<p>
+So we shall give this a go when we've had some sleep, just so we remember to
+change all #define lines in ramdisk.c, kernel.c, paging.c, and stage2.asm,
+etc.  
+</p>
+
+<p>
+22:052512
+</p>
+
+</text>
+</post>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Paging idiocy--the dangers of uninitialized memory" date="20090825:183814">
+<tag name="debug" />
+<tag name="paging" />
+<text>
+
+<p>
+We narrowed down the page faulting source to the get_page function, and so,
+just to make sure the issue is not something with accessing the arguments, we
+place the following blob of code at the beginning of the function (though
+after defining table_index): 
+</p>
+
+<code>
+  print_hex_32((u32)(dir));prints(" 1\n");
+  print_hex_32(make);prints(" 2\n");
+  print_hex_32(address);prints(" 3\n");
+  print_hex_32(table_index);prints(" 4\n");
+  print_hex_32((u32)(dir->tables[table_index]));prints(" 5\n");
+  print_hex_32((u32)(&amp;(dir->tables[table_index]->pages[address%1024])));prints("6\n");
+</code>
+
+<p>
+The output on QEMU: 
+</p>
+
+<code>
+C1015000 1
+1 2
+C0000 3
+300 4
+0 5
+0 6
+...
+</code>
+
+<p>
+The output on RHW: 
+</p>
+
+<code>
+C1015000 1
+1 2
+C0000 3
+300 4
+5B1F5FDB 5
+5B1F5FDB 6
+</code>
+
+<p>
+Aha!  
+</p>
+
+<p>
+There is some unitialized memory thing going on then...  
+</p>
+
+<p>
+...
+</p>
+
+<p>
+Wow.  Compare: 
+</p>
+
+<code>
+  u32 mem_size = 0x10000000;
+  u32 num_frames = mem_size/0x1000;
+  frames_map = imap_create(num_frames);
+  setm((u32 *)(frames_map->bitmap->bits), 0, num_frames);
+
+  kernel_dir = (pagedir_t *)kmalloc_a(sizeof(pagedir_t));
+
+  setm((u32 *)kernel_dir, 0, sizeof(pagedir_t));
+</code>
+
+<p>
+with: 
+</p>
+
+<code>
+void setm(u32 *start, u32 size, u32 val){
+  u32 i;
+  for(i = 0; i &lt; size; i += 1){
+    *(start + i) = val;
+  }
+}
+</code>
+
+<p>
+OOPS: setm takes the value as its third argument and size as the second, and
+NOT the other way around.  
+</p>
+
+<p>
+So this will work on QEMU, as it will set 0 bytes to something, i.e. it will
+not do anything, but all memory is zeroed anyways, whereas on RHW the memory
+is all garbage.  (Though always the same garbage?  That is a bit odd.)  
+</p>
+
+<p>
+Anyways, swapping the arguments, we get success (still) on QEMU, and on RHW,
+we get success in the sense that the garbage now registers are zeros, and
+...SUCCESS on RHW!
+</p>
+
+<p>
+185606
+</p>
+
+</text>
+</post>

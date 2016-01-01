@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Ramdisk Working... Maybe..." date="20090901:015929">
+<tag name="initrd" />
+<text>
+
+<p>
+After recompiling (maybe I was working off an old version?) rdgen.c and fixing
+compatability problems (the rdgen struct had size before start and the
+initrd.c struct had them reversed!) and general stupidity, the ramdisk seems
+to be working.  More rigorous tests will be done in the future, but for now we
+move on to userland!
+</p>
+
+<p>
+020214
+</p>
+
+</text>
+</post>

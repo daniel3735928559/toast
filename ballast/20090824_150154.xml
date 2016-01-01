@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Moving the Kernel Loader into Stage 2" date="20090824:150154">
+<tag name="hw" />
+<tag name="debug" />
+<text>
+
+<p>
+We've moved the kernel-loading code into stage two and got the vidmem pointer
+out, albeit with a bit more difficulty with worrying about the +BASE and
+whatnot, which I don't fully understand yet.  
+</p>
+
+<p>
+At any rate, QEMU likes it fine and I can evidently receive interrupts and
+such without a problem, but RHW triple faults.  As far as I have experimented,
+it occurs well after paging is enabled, so further debugging is in order...  
+</p>
+
+<p>
+Ah, I've left in a stray
+</p>
+
+<code>
+mov eax,0xF00000000
+mov [eax],0xFFFFFFFF
+</code>
+
+<p>
+which explains that.  (RHW box has vidmem at 0xFD000000, QEMU has 0xF0000000.)
+</p>
+
+<p>
+After fixing that...Success!  Keyboard input even works on RHW (not in QEMU
+though).  
+</p>
+
+<p>
+Cool.  On to paging now.  
+</p>
+
+<p>
+151045
+</p>
+
+</text>
+</post>

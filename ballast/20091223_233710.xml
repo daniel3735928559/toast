@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Allocator Testing" date="20091223:233710">
+<tag name="malloc" />
+<text>
+
+<p>
+The kheap utilizes the physmem allocator quite a bit, and seems to work
+decently, so we'll just need to test kheap.  
+</p>
+
+<p>
+After realizing that expand populated the descriptors slightly incorrectly,
+allocating appears to work.  
+</p>
+
+<p>
+And indeed, after realizing that get_block_info is called as
+</p>
+
+<code>
+  get_block_info(heap, block_start, &amp;info);
+</code>
+
+<p>
+and not as 
+</p>
+
+<code>
+  get_block_info(heap, &amp;info, block_start);
+</code>
+
+<p>
+free seems to work as well.  YAY!
+</p>
+
+<p>
+24:001636
+</p>
+
+</text>
+</post>

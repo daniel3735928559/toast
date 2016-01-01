@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Going" date="20090822:013522">
+<tag name="debug" />
+<tag name="vesa" />
+<text>
+
+<p>
+Now we can plot pixels to the screen, which is good, and now we don't have any
+stray 0xF80's or 0xF8000000's or any such things hard-coded in (hopefully!),
+so this should work consistently across different machines now...
+</p>
+
+<p>
+In fact, it even gets to kmain (where kmain is blank) OK now!  We've made
+progress (back to where we were at 20090404, apparently)!  
+</p>
+
+<p>
+And we can again print!  
+</p>
+
+<code>
+--OUT
+esp: 8FFE0
+vidstart: FD000000
+HELLO PAGED WORLD!
+--END OUT
+</code>
+
+<p>
+Now we've got to get the hh paging set up correctly...  (As is unsurprising,
+uncommenting the call to paging_init in kernel.c causes a triple fault.)  
+</p>
+
+<p>
+014341
+</p>
+
+</text>
+</post>

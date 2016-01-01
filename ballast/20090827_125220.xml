@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Allocator testing" date="20090827:125220">
+<tag name="malloc" />
+<text>
+
+<p>
+From the looks of it, using the block-size and heap-size we're using it takes
+rather a long time to set up the imap, (probably just pushing things onto the
+stack), so we look at a likely better way to write the imap: 
+</p>
+
+<p>
+Keep track of the largest occupied index, and then push onto the stack exactly
+those indices that are smaller than the maximum.  So, for example, if we only
+allocate and never free, the stack never gets used.  
+</p>
+
+<p>
+Or perhaps this is a silly idea, as then the worst-case freeing time is
+somewhat terrible in the case of freeing the highest block, (as then we have
+to search back down for the next lowest one), and if we want to store these
+values we'd need to do so in an ordered way, i.e. allocating becomes a chore.
+</p>
+
+<p>
+For the sake of something quick and dirty we can implement the idea and worry
+a bit less about the possibility of an `attack' by allocating loads of
+connections (or whatever) and then freeing all but the last one allocated (a
+fast operation) and then freeing the last one, as the trouble can be limited
+by limiting the resources allocated collectively by the children of a single
+node (or something).  
+</p>
+
+<p>
+We shall revisit this, though, as it is an interesting issue.  
+</p>
+
+<p>
+Another thing to be careful of is that even if we limit the number of
+resources allocated, we still want to be able to free intermediate physical
+frames if, for example, someone allocates 1GB + epsilon of resources and then
+frees all but the last bit, we want to be able to reclaim almost all but the
+last bit in actual physical memory.  
+</p>
+
+<p>
+Hmm...  Details, details, details.  
+</p>
+
+<p>
+28:013945
+</p>
+
+</text>
+</post>

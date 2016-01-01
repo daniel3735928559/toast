@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Reworking Paging" date="20091226:201255">
+<tag name="paging" />
+<text>
+
+<p>
+Because we are going to be dealing with nodes in our working with tasking, it
+would be nice if most of our paging functions worked with pagedirs via nodes,
+and with pagedir structs that coincide with what we want to be working with
+later on, rather than the rather specific thing they deal in now.  
+</p>
+
+<p>
+And after a brief terrifying series of triple faults resulting from zeroing
+structs after setting them up, it seems we have success.  
+</p>
+
+<p>
+201951
+</p>
+
+</text>
+</post>

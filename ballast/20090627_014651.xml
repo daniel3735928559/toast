@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Reboot II" date="20090627:014651">
+<tag name="plan" />
+<tag name="ipc" />
+<tag name="vesa" />
+<text>
+
+<p>
+So we return, Class I (and WP!) in hand, to survey the current situation, make
+a quick note of some general thoughts relating to future directions, and
+review the tasks currently at hand.  I am at camp presently and have brought
+bits of computer with which to test.  However, the video card I grabbed on the
+way out the door doesn't seem to support VESA mode 0x4115, so I have written a
+first attempt at a better mode detection/setting within the bootloader, which
+needs further testing/debugging.  This is difficult, however, without knowing
+quite what modes this card supports (though evidently it does support VESA2).
+To this end, I've written text-mode monitor-handling code that I should be
+able to use to get what modes I'm seeing from the card (assuming the assembler
+to do that is in any way correct).
+</p>
+
+<p>
+So once that's sorted (or, perhaps, in parallel with the sorting of that), we
+need to handle the remainder of the kernel.  In particular, we need to start
+with the paging code.  
+</p>
+
+<p>
+We had last time that we were going to map the kernel at 0xC1000000, with the
+kernel stack at 0xC0000000
+</p>
+
+<p>
+For some general thoughts, one thing that might be nice to have is to simplify
+deployment.  If we're honest about why web apps are popular, it's because
+deployment is so easy.  But more interestingly, if we're honest about how the
+web is being used, it's being used to provide essentially sandbox applications
+of some kind, so if an application could be compiled to bytecode and
+distributed as a `web app' that simply runs (slower) inside the sandbox all
+the time, and if we could distribute these in a simple way (that has all the
+easiness factor of the web)...
+</p>
+
+</text>
+</post>

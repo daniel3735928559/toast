@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Things to Allocate" date="20091224:011755">
+<tag name="plan" />
+<tag name="malloc" />
+<text>
+
+<p>
+So, having a working allocator (should test whether slabs behave as well as
+blocks appear to, but this will come), we can now get on to implementing the
+three primitives we had decided on: nodes, events, and connections.  We handle
+each in its turn, which should take place in that order.  
+</p>
+
+<p>
+The interfaces and such for these has been discussed many times elsewhere, so
+we summarize here: 
+</p>
+
+<code>
+node: 
+  create_node
+  dump_node
+  switch_to_node
+</code>
+
+<code>
+connection: 
+  connect
+  disconnect
+  send
+  recv
+</code>
+
+<code>
+event: 
+  make_event
+  dump_event
+  fire
+</code>
+
+<p>
+020313
+</p>
+</text>
+</post>

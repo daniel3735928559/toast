@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Going" date="20090823:030654">
+<tag name="debug" />
+<text>
+
+<p>
+Removing instructions seems never to hurt, though I wonder if it can be a size
+issue, as removing the reserved space on the end for the stack never seems to
+do anything...  
+</p>
+
+<p>
+030748
+</p>
+
+</text>
+</post>

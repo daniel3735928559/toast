@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Physical and Vitrual Allocators' Interactions" date="20091227:015300">
+<tag name="map" />
+<tag name="malloc" />
+<tag name="paging" />
+<text>
+<p>
+There was a problem introduced some time back in which the naive method of
+sitting the physical allocator on top of the virtual allocator could fail,
+albeit less obviously than the notion might indicate.  However, there is a
+solution that now seems rather obvious that allows us to, modulo a little
+hack, do exactly what we wanted.  
+</p>
+
+<p>
+The problem comes when the virtual memory manager may, in the process of
+filling a request stemming from a request to the physical allocator, need to
+issue a further request to the physical allocator (e.g. to make another page
+table), which will spawn another request to the virtual allocator, and around
+and around it goes.  However, if we pre-allocate all tables for all of kernel
+space (0xC0000000 onwards) in the kernel's pagedir, mapping them to a
+pre-defined range of addresses in kernel space.  This will cost some chunk of
+physical RAM, namely 0x1000*0x300 = 0x300000 = 3MB of RAM.  This could be a
+serious problem if we ever need to run on systems with, say, 16MB of RAM, but
+the complexity and time savings make it worthwhile.  
+</p>
+
+<p>
+We can do all this in paging_init, and our mappings will be nicely duplicated
+along with the rest of the kernel directory whenever we make a new node, so
+the overhead is O(1), usefully.  
+</p>
+
+<p>
+Neatly, with the work we've done thus far, this is as easy as 
+</p>
+
+<code>
+  u32 i;
+  for(i = 0x300; i &lt; 0x400; i++) get_page(i*0x400000, 1, kernel_node->pagedir);
+</code>
+
+<p>
+024400
+</p>
+
+</text>
+</post>

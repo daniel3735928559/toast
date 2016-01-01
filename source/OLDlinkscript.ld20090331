@@ -1,0 +1,23 @@
+ENTRY (begin)
+OUTPUT_FORMAT("binary")
+
+SECTIONS{
+    . = 0xC0100000;
+
+    .text :{
+        *(.text)
+    }
+
+    .data ALIGN (0x1000) : {
+        *(.data)
+        *(.rodata)
+    }
+
+    .bss : {
+        _sbss = .;
+        *(COMMON)
+        *(.bss)
+        _ebss = .;
+    }
+}
+

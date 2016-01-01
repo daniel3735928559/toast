@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="More hh fun--GDT mapping" date="20090330:133825">
+<tag name="map" />
+<tag name="bootloader" />
+<text>
+
+<p>
+A question: Do we need to use the GDT ever after setting up the IDT/ISRs?
+Also, do the IDT/ISRs need to be mapped into virtual address space?  Probably,
+since they'll be running and stuff.  Hmm...
+</p>
+
+<p>
+142000
+</p>
+
+
+</text>
+</post>

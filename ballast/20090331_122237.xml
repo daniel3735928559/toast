@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="PT oops" date="20090331:122237">
+<tag name="paging" />
+<tag name="bootloader" />
+<text>
+
+<p>
+Turns out the page table doesn't work just fine (was 'jmp $'ing before it got
+there), but now VESA works OK, just need to debug the page tables and such.
+Endianness problem is suspected.  
+</p>
+
+<p>
+122338
+</p>
+
+</text>
+</post>

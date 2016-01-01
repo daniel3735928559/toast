@@ -1,0 +1,8 @@
+v=$(cat current_ver)
+A="$(date +%Y%m%d)_toast_$v"
+mkdir old/$A/
+cp -rpv source/ README old/$A/
+tar -cvf comp/$A.tar old/$A/
+gzip comp/$A.tar
+cp -rpv comp/ source/ index.html README ballast intro.html ~/public_html/uiopas/toast/
+echo $(($v+1)) > current_ver

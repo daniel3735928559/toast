@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Kernel Structures" date="20090404:135816">
+<tag name="map" />
+<text>
+
+<p>
+Because everything's going to be statically allocated, we'll need some thought
+input before we start hacking away--in particular, some kind of decent
+organization.  
+</p>
+
+<p>
+For starters, let's bring that list of structs from above down here: 
+</p>
+
+<code>
+	Kernel structures: 
+	   PTs and PDs
+	   Threads
+	   Nodes
+	   Connections
+	   Kernel Stacks (for reentrancy)
+</code>
+
+<p>
+It may be possible to dump the concept of threads and go entirely with nodes,
+which I guess we'll do for now.  
+</p>
+
+<p>
+So: 
+</p>
+
+<code>
+Kernel structures: 
+   Page Tables
+   Page Directories
+   Nodes
+   Connections
+   Kernel Stacks
+</code>
+
+<p>
+Kernel stacks can be assumed to take 0x4000 bytes (0x1000 at the start for a
+canary page (for detecting overflow) and the other 0x3000 for actual space)
+</p>
+
+<p>
+The rest can be taken to be 0x1000 bytes: PTs and PDs are naturally 4K, and
+the node structure can have a corresponding list of connectionIDs following
+the (small) structure.  It may be possible to allow arbitrarily many
+connections by making a linked-list of 0x1000-byte-aligned frames, each with
+an array of associated connectionIDs for the node.  
+</p>
+
+<p>
+06:182215
+</p>
+
+</text>
+</post>

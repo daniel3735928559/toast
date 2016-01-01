@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Tasking and IPC!" date="20100630:120023">
+<tag name="ipc" />
+<tag name="tasking" />
+<text>
+
+<p>
+Code for tasking is done (not much to it actually).  Will go through it with
+the qemu-comb shortly, the structure of the IPC system bears mention now as
+the multitasking system depends on it somewhat.  
+</p>
+
+<p>
+In the large, the idea is that all IPC will be done through persistent
+`connection' primitives, with the idea that the user may want to, for
+instance, intercept all keyboard input to a certain program, which would then
+be possible by splicing into the connection between the keyboard and program
+nodes (we use this model as opposed to the on-the-fly `send to this port'
+model for similar reasons to choosing `write to this file-descriptor' over
+`write to this path'; the example of bash output redirects show that syntactic
+sugar can make this equally painless to the simpler model, programmingwise).
+</p>
+
+<p>
+However, because they are also handy, we would like the separate primitive of
+events also to be provided by the kernel.  Then associated to each connection
+is a `recv' event that the target end of the connection can choose to listen
+for (i.e. register a callback for) if it doesn't want to poll the connection
+for whether it has sent something, or if it would rather poll, it can not
+register and make use of a check_message_queue function, or similar.
+</p>
+
+<p>
+Then there is the issue of implementation.  As this is quite
+processor-dependent, we can for now just do the naive thing of throwing around
+frames of memory on demand.
+</p>
+
+<p>
+0702:182217
+</p>
+
+</text>
+</post>

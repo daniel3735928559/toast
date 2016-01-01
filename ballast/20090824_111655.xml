@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Schedule" date="20090824:111655">
+<tag name="plan" />
+<text>
+
+<p>
+Looking back, the two most horrendous debugging experiences of this project
+were the PD 0x300/0xC00 mishap and this random trashing of memory.  Viewing
+these as some kind of upper bound on the time needed to debug, it looks like I
+can expect three to five days of solid work (as is available until just before
+October) for each major milestone.  So it becomes relevant to consider which
+of these remain: 
+</p>
+
+<p>
+-Page-table remapping (code exists--should be easy)
+    (20090825: Done)
+</p><p>
+-Kernel struct allocator (Hard, but mostly a frontend for the physmem mgr)
+    (20090830: First version done)
+
+</p><p>
+
+-Ramdisk loading (code exists--should be OK) 
+    (20090901: First version done)
+
+</p><p>
+
+-Userland/Syscalls (code exists, but this is an Intel thing, so be wary...)
+    (20090903: All tricky parts are done)
+</p><p>
+
+-Multitasking (difficult--some code exists)
+
+</p><p>
+
+-IPC (also difficult--no code yet!).
+
+</p><p>
+
+And now we actually have a month to do just these, where our crude
+approximation puts the ETA at 30 days and 36 are available.  .  
+
+Go time. </p>
+
+</text>
+</post>

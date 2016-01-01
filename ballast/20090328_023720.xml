@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Hacky-Stack" date="20090328:023720">
+<tag name="map" />
+<tag name="syscall" />
+<tag name="stack" />
+<text>
+
+<p>
+In all recent endeavors, I've put off dealing with this one issue for about as
+long as is possible, but now it's time to take it on in full.  Namely: Where
+is the stack supposed to be at any given time and where is it at the outset?
+When I've enabled paging, things don't instantly die, so I assume the stack is
+in ID-mapped memory somewhere (which is probably at the root of that `I've
+gotta ID-map more than I should have to' issue mentioned earlier), but that's
+really all I know.  When I go to a different address space, that needs a stack
+and where do I put that?  And when I syscall the kernel and want to call
+functions from the handler that needs a stack and where do I put that?  All
+these things I'd like to put to rest here and now once and for all.  
+</p>
+
+<p>
+For non-kernel processes, the stack should always be in some well-defined,
+fixed location in virtual memory, say 0, (sitting inside some arbitrary frame
+or something--doesn't really matter).  When preparing an address space for a
+new such processes, we'll just grab a free frame and stick the stack on it and
+map it to that fixed location.  Sorted.
+</p>
+
+<p>
+For the kernel, the stack should also be in some different fixed location.  It
+should be different because the kernel is also mapped into the processes
+address space at the same time, so unless we want to mess with page-tables
+every time there's a syscall that wouldn't otherwise involve a context-switch,
+it's best to have the stack be somewhere else.  Let's say we put it at
+0xE0000000.  
+</p>
+
+<p>
+(For security in the future, it might be handy to have an forcedly non-present
+page below the stack always so that reads beyond the stack generate a
+page-fault, which, if traced to the relevant page, can be reported as a `stack
+overflow'.)
+</p>
+
+<p>
+Now there's a fiddly bit.  When we execute a syscall, we'll be thrust back
+into the kernel with our stack loaded from the TSS (some x86 silliness).  But
+if we're then interrupted again and then again thrust into kernel-land by a
+separate syscall before the previous one had finished, we could, if not
+careful, end up trashing that stack.  So for each task we'll want a separate
+stack for use in kernel-land, and when we switch to that task, we'll switch
+the TSS's stack pointer to the corresponding kernel-stack (so if it syscalls,
+the kernel will use the correct stack).  This does mean that in kernel-space,
+we need a stack allocated for each running task.  Pain.  But it can be done.
+Later.  
+</p>
+
+<p>
+030621
+</p>
+
+</text>
+</post>

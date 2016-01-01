@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="RAM Moving" date="20091222:140355">
+<tag name="paging" />
+<tag name="vesa" />
+<tag name="map" />
+<text>
+
+<p>
+Seems like everything works, but if we put the kernel data as starting at
+0xA0000 the data seems to get overwritten with 1s even just after we stick
+data there.  Presumably some device lives there and we are disturbin its
+slumber.  Or something.  So we put it at 0x100000, and now everything seems to
+work as before, except that the ramdisk still thinks it lives at 0x20000.
+...Ah, forgot to change what was passed to the kernel in kinit.asm.
+</p>
+
+<p>
+So, for future reference, our current mappings are 
+</p>
+
+<p>
+Kernel mapping: 
+</p>
+
+<code>
+vidmem is idmapped                             (vidmem)
+0x00010000-0x00030000 -> 0xC0000000-0xC0030000 (kernel)
+0x00030000-0x00040000 -> 0x00030000-0x00040000 (stack)
+0x00040000-0x00050000 -> 0x00040000-0x00050000 (ramdisk)
+0x00100000-0x00500000 -> 0xC1000000-0xC1400000 (kernel data)
+</code>
+
+<p>
+Init mapping (in stage2): 
+</p>
+
+<code>
+0x00000000-0x00400000 -> 0x00000000-0x00400000 (So the current code survives)
+0x00010000-0x00410000 -> 0xC0000000-0xC0400000 (kernel)
+0x00100000-0x00500000 -> 0xC1000000-0xC1400000 (kernel data)
+[t_vidmem]-end vidmem -> [t_vidmem]-end vidmem (vidmem)
+</code>
+
+<p>
+And success!
+</p>
+
+<p>
+141420
+</p>
+
+</text>
+</post>

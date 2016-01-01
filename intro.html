@@ -1,0 +1,287 @@
+<html><body><pre>
+
+I am here to talk about three major problems experienced by people involved in
+software, both on the developer end and on the user end.  My goal is to
+provide a rubric for evaluating any system for creating software and
+presenting it to users, be it the system of writing a load of javascript and
+giving your users a webpage, or the system of writing a load of C# and giving
+your (Windows) users a `rich application'.  Further, I aim, in the course of
+this discussion, to present a hypothetical platform that addresses all the
+points I am going to make against existing systems.
+
+I am going to take the liberty, contra the <a href="http://blog.businessofsoftware.org/2009/07/seth-godins-talk-from-business-of-software-2008.html">advice</a> of Seth Godin and others, of
+assuming that software *is* about function (as opposed to about `networking
+users' or whatever the trendy thing is today).  And certainly, some software
+is.  Despite the influence of `social software' like Facebook and Squidoo,
+there will always be a need for that kind of software you use huddled away in
+a dark studio or office--Photoshop, audacity, emacs, bash.  This is the sort
+of software I wish to be able to use more powerfully--and write more
+cleanly--as a result of having a system like that to be presented here.
+
+Principally, any platform (understood in the above sense) should address
+concerns in the following three areas:
+
+1. Distribution
+2. Presentation
+3. Interoperability
+
+
+1. Distribution
+
+The problem of distribution first shows up in a project before a line of code
+is written, when the team needs to decide on a coding platform.  On the face
+of it, maybe it's just Macintosh or Linux or Windows, but especially now, it's
+a veritable combinatorial explosion of possibilities: XP vs. Vista vs. 7, with
+libfoo-v1.2 or libfoo-v1.1 and libbar-v0.1, or GNOME vs. KDE3 vs. KDE4
+vs. ratpoison vs. ... or 32-bit vs. 64-bit, and on and on and on.
+
+Because distribution is a problem for developers (and indeed, the concern of 
+our three that most substantially affects them), the platform that solves 
+distribution issues almost certainly wins.  This is why Windows won early 
+on--it was popular enough, and if you wrote a sufficiently popular application 
+Microsoft would ensure that application worked on future Windows forever 
+after.
+
+It is also why, as Joel Spolsky <a href="http://joelonsoftware.com/articles/APIWar.html">explains</a>, Windows is losing now, both as they
+dropped the ball on backwards-compatability and because they are no longer by
+far the only widespread operating system.  But something is winning instead,
+and it is the platform of the web browser, built on the paradigm of the cloud.
+
+Now, when you want to write an email, you don't open a rich app, but you log
+into a site with some AJAX interface, downloaded from a server that stores all
+your personal communication on some hard disk not under your control.  This is
+notionally horrible for all kinds of reasons, but it wins because it lets
+developers hit all users at once without having to write a^n versions of their
+application, and what makes developers happy gets all the cool apps, and hence
+all the users.
+
+But it also makes the users happy, because it provides an almost seamless
+transition from learning about the application (which will almost certainly
+happen through some webpage, because this is what the web is actually
+for--sharing information) and using it: You click on a link from your friend's
+blog taking you to gmail.com and voila! You're using the app with one click
+between being convinced to use it and actually using it.  
+
+Compare this to the process of clicking a download link, reading some terms
+and conditions (well, actually, not reading them and feeling slightly guilty
+about it), selecting an installation folder (well, actually OKing the default
+and feeling slightly uncertain about whether that is the best idea because it
+really doesn't matter), waiting for the installation (and worrying that it
+might be irreversably eating your system because, after all, you have given it
+far more permissions than you really should ever have to give to an
+essentially arbitrary person).  The web app has zero of these steps (except
+for load times, which are often comparatively short), and (possibly less
+importantly, but still a factor) none of the negative emotions that thoughtful
+users might experience.  
+
+So certainly, given that Windows and Mac aren't both going away (and probably
+neither are) in the near future, a successful platform will certainly have to
+be browser-like in that it is a runtime installed on every platform that will
+run applications downloaded from the internet inside a sandbox.  This
+eliminates the need for any annoying installation process, and eliminates the
+need to give permission to some random game programmer to, at install time,
+upload your `My Pictures' folder to Facebook if he so desires.  It doesn't
+necessarily provide the seamless link between finding the app in a browser and
+using it, but if the browser (through plugins or such) could invoke this
+runtime (say with the url of the app it needed to run) this would also be
+solved.
+
+So this almost gives us that the browser is optimal, but it has a few
+problems, also both for developers and users.  
+
+2. Presentation
+
+The web platform's presentation problem, on its face, is simply that
+presenting the functionality of their software is hard for developers.  Anyone
+who has tried to design a webpage with something horizontally centred on the
+screen knows this, as does anyone who has even looked at the source code for
+gmail or facebook.  Just to make a dropdown menu or a sidebar that works
+perfectly on all browsers takes massive amounts of work.
+
+Joel Spolsky <a href="http://joelonsoftware.com/items/2007/09/18.html">thinks</a> that the future is for someone to solve this problem.
+While he may well be right, as the system of `web apps written with this
+hypothetical NewSDK' solves all developers' problems (and, as mentioned
+before, he who pleases the developers wins the day), this solution ignores the
+problems that users have. Here, I don't particularly mean the fiddlyness of
+web apps--Mozilla may even manage to make XUL sufficiently nice that this is
+harder to complain about.  Rather, I mean the restrictions that come about
+from the developer choosing how you access his functionality.  This is a
+problem both with rich clients and with web apps, and examples abound.
+
+Doninos Pizza now lets you order your pizza online, now, and they have this
+nice javascript interface with lots of radio buttons and checkboxes and combo
+boxes to select whether you want peppers or olives or pepperoni or Italian
+sausage and on half or all or a seventh of your pizza and where you want it
+delivered.  So say you're in college and you have a party every week and want
+to order 10 pizzas every Saturday at 1900.  And eventually, you get a good
+idea of what works and realize that you can order 10 pepperoni.  Except one of
+your friends really loves the garlic crust, another loves pineapple, and
+another is vegan, so you end up getting 7 pepperoni, one pepperoni with garlic
+crust, one Hawaiian, and one of those disgusting `white' pizzas with the
+spinach and fake cheese and whatever else.  But eventually you settle on the
+perfect 10 pizzas that make your standard guests maximally happy, and you have
+these stored in a file somewhere.  Now, every Saturday you open this file and
+fight your way through 10 sets of radio buttons and checkboxes to finally get
+to the screen where it tells you that `Jimmy is preparing your order!'
+
+Or say you use Photoshop, and you really like its `sharpen' function, and you
+want to sharpen all 1000 photos you took on your spring break trip to Israel.
+And it has to be Photoshop, because ImageMagick's sharpen function doesn't cut
+it for you.  But the special sharpen function is locked inside a a big GUI
+under some subsubmenu with a couple intervening dialogs so you can set it how
+you want.  So now you have to fight through 1000 instances of menus and
+submenus and dialogs, and eventually you give up and hire your little brother
+to do it for you for 25 cents and a homework problem an hour.  Except that
+then you realize that you don't exactly want him to see your spring break
+pictures, so you use ImageMagick instead and are sad.
+
+And the answer is not to simply implement another menu item for `sharpen
+multiple images' or an option to `upload your order file', as then if you
+instead want to apply blur to half of every third image you have to pray that
+the developer also thought of that.  No developer is smart enough to think of
+every possible way a user may want to use his software, but because they think
+they must present their software in some GUI, they are simply left with
+enabling only those uses they thought of.
+
+The answer is also not for each app to have its own special scripting
+language.  For one thing, writing a programming language is hard.  Learning a
+programming language is not a cakewalk either, so let's not talk about
+learning one for every program you ever want to use, (not to mention learning
+all the quirks of each because not everybody (and probably almost nobody) is
+going to get the language design right because, well, making a programming
+language is hard!).
+
+The answer is to get out of the presentation business altogether.  Admit that
+you don't know how best to present your functionality for every user out
+there, and move on.
+
+`But wait--you're telling me to make my users design an interface for my
+software?  What happened to `choices are bad'?'  I am saying that software
+shouldn't be tied to any particular interface, but that you should merely view
+yourself as supplying a standard interface that almost all of your users will
+love and use almost all of the time, rather than as supplying *the* interface
+to the functionality you made.  And the point is that this isn't doing 50%
+more work to satisfy 5% of all customers, but rather it is doing no extra work
+other than deciding in the first place to design for a sensibly designed
+runtime.
+
+In particular, the setup we propose is the following: Every program's
+functionality is accessible only through IPC.  So to blur an image in
+Photoshop--say, the region from (0, 0) to (40, 50) you send to Photoshop an
+IPC message of the flavour `blur,0-40,0-50,2443,[image_file]' and it does it
+and sends the result back to you on your IPC port 2443.  Then supporting
+runtimes (a shell or a GUI or whatever) will bind various IPC calls to various
+interface elements that they define.  So a GUI interface will define a bunch
+of buttons and bind them to the appropriate IPC calls, with parameters pulled
+from the appropriate GUI elements (textboxes, sliders, etc.).  But this way,
+you can also have a shell interface, which defines a bunch of shell commands
+that it can bind to to appropriate IPC calls, pulling the parameters from
+command-line arguments and switches.  
+
+In practice, you'll have the Photoshop binary that understands only IPC and
+has no notion of any associated GUI or shell or whatever.  Then, separately,
+you have, for each type of interface, as associated `interface descriptor'
+file.  So for the GUI, you have one descriptor file that describes the buttons
+and textboxes and their layout and IPC bindings, and, separately, for the
+shell, you have another descriptor file that describes the commands and their
+arguments and switches and their corresponding IPC bindings.  And then, if you
+want, you can provide another descriptor for network access (so that people
+can use the program on your machine over an ssh tunnel, for instance, without
+your having to provide those people with a full shell that you then have to
+lock down).  And you can provide another for brainwave input, if that becomes
+a thing, and on and on we could go.  
+
+As an example of a GUI-type descriptor, take a file similar to: 
+
+&lt;window title="Photoshop"&gt;
+&lt;panel name="drawing"&gt;
+       &lt;canvas name="main_canvas"&gt;
+&lt;/panel&gt;
+&lt;panel name="sidebar"&gt;
+       ...
+       &lt;button name="blur" size="32x32" image="images/blur.png" tooltip="Blur" function="blur,main_canvas.getSelectionArea(),2443,mainCanvas.getContent() /&gt;
+       ...
+&lt;/panel&gt;
+
+&lt;event type="incoming" port="2443" function="main_canvas.setContent(recv())" /&gt;
+
+Then the GUI-Photoshop is opened, the GUI runtime will interpret this file and
+build the appropriate buttons and panels which then, when the `blur' button is
+clicked, sends the appropriate message, whose response in turn is handled in
+the appropriate way.
+
+The advantage is that now, the Photoshop people can define a second interface
+as well: 
+
+...
+&lt;command name="blur-rect" args="5" function="blur,$2-$3,$4-$5,2443,$1" onCall="to_write=$1" /&gt;
+...
+&lt;event type="incoming" port="2443" function="write(recv(),$to_write)" /&gt;
+
+Which a shell runtime will read and then define a new command `blur-rect' so
+that you can, in this shell, invoke: 
+
+$ blur-rect image.png 0 40 0 50
+
+And that will blur the appropriate part of the file.  
+
+And so on.  
+
+3. Interoperability
+
+A further advantage of this approach is that not only can a human control your
+program better, but that another program can control your program if this
+becomes desirable.  Anyone who has done bash scripting, with its
+ultra-expressive pipelines, knows that this is where real flexibility and
+power comes from.  To have an IM client that can invoke a LaTeX processor to
+render some equations that you're talking about, and bring up a throwaway SVG
+drawing window for you to jot a quick illustration of something for the other
+person is only possible if all the programs involved cooperate, and exactly
+the way for this to happen is for app programs to explicity expose their
+functionality in the most general way, and then let the user decide how to
+invoke it.  So the IM client shouldn't have to know (as in, be pre-programmed
+with knowledge about) about the TeX processor as such, but rather it should be
+easy to tell it to pass certain sorts of incoming messages (e.g. those
+matching the regex /$$.*?$$/) to some user-specified node (e.g. a LaTeX
+processor) or, at some point, for the user to manually hook up a given node
+(SVG drawing program) to the message-sending functionality (with the recipient
+(perhaps automatically via regex as in the LaTeX example) making the dual
+connection--message receiver to SVG displayer--on the other end).
+
+But aside from actively linking various programs for fun and profit, the user
+benefits even from simply having the ability to sniff and splice any given
+connection.  A keylogger is simply a recording of all outbound connections
+from the keyboard driver node.  A keystroke replayer is a keylogger that
+sniffs only on selective ports and then feeds a copy of that stream into the
+same port at some later time.  A screen capture program is the recording of
+all inbound messages to the monitor node (or, if more concision is required,
+possibly to the GUI node).  Logging is no longer a `cross-cutting concern'
+that needs to be addressed with new programming languages (`Aspect Oriented'
+programming seems to be the in-vogue attempt at a solution to this, but the
+security issues are proving to be an issue), but is simply exposing
+intra-program connections to the appropriately permissioned user and that user
+sniffing those connections.  
+
+This is all by way of saying that while there are significant gains to be had
+from making the sending and receiving functions of IPC accessible and amenable
+to bindings and such (as we saw in the discussion of presentation), this is
+not sufficient.  Rather, one should further expose the IPC primitives
+themselves--the connections between nodes and the events the various nodes
+subscribe to--to the user's control.  Only then can a user can subscribe his
+special logging program as a listener to all the events he wants to log and
+splice it into all the connections he needs to log from.
+
+This is what makes actually constructing a runtime as described here such a
+challenge--typically IPC is a kernel-level matter (even for microkernels!),
+and so making IPC primitives (connections and events) into first-class objects
+is necessarily either a matter of modifying the kernel, or else virtualising.
+The good news is that writing a microkernel that only handles the necessary
+objects is somewhat lightweight--around 2000 lines.  The bad news is that
+changing kernels is hard.  So either we have to steal the mantle of the Hurd
+project or take up Windows and Mac programming and write just a lightweight VM
+of some kind.  (Which is not as awful as it sounds--this is what a web browser
+is, after all.)  
+
+Tricky stuff.  
+
+</pre></html>

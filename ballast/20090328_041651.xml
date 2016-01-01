@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Ramdisk again" date="20090328:041651">
+<tag name="bootloader" />
+<tag name="map" />
+<tag name="initrd" />
+<text>
+
+<p>
+A possible solution to the `where is the ramdisk?' problem: Essentially, stick
+it on the disk image in the manner of a very simplistic filesystem: Have the
+linker stick it at some known address and load it there, later mapping those
+frames to some fixed spot in virtual memory out of the way.
+</p>
+
+<p>
+Actually, the difficulty had in doing this illustrates a problem: What does
+physical RAM look like after loading all the kernel and after setting up the
+heap but before enabling paging?  This is a useful question, because we need
+to know where we are allowed to put things that actually depend on location in
+physical RAM, e.g. DMA buffers and the ramdisk.
+</p>
+
+<p>
+As it stands now: 
+</p>
+
+<code>
+Kernel: 0x7C00 - 0x7C00 + kernel_size
+Initial stack: ??? (will stick in prints lines to work it out)
+Heap: ??? (Forgot)
+Ramdisk: Nowhere
+VESA memory: 0xF8000000-0xFFFFFFFF
+</code>
+
+<p>
+When we enable paging, virtual memory looks like: 
+</p>
+
+<code>
+ID-mapped: 0 - 0x7C00 + kernel_size
+Kernel: 0x7C00 - 0x7C00 + kernel_size
+Initial Stack: ??? (Same as above--Should move to pre-defined location)
+Heap: ??? (Forgot)
+Ramdisk: Nowhere (should move to some other pre-defined location)
+</code>
+
+<p>
+Not so good.  Let's get a few of these numbers, shall we?  
+</p>
+
+<p>
+042401
+</p>
+
+</text>
+</post>

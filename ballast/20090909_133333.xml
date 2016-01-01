@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Alligator II (continued)" date="20090909:133333">
+<tag name="malloc" />
+<text>
+
+<p>
+Firstly, we note what heaps we will use in the kenrel together with
+(object-size, slab-size, max objects, constructor, destructor)
+</p>
+
+<code>
+page_dir(0x1000, 0x4000, MAX_NODES, fill_with_kernel_PTs, fill_with_kernel_PTs)
+page_table(0x1000, 0x10000, 0x300*MAX_NODES, zero, zero)
+node_t(sizeof(node_t), 0x1000*10, zero, zero)
+stack_t(0x1000, 0x4000, MAX_NODES, zero, zero)
+event_t(sizeof(event_t), 0x4000, MAX_EVENTS, zero, zero)
+connection_t(sizeof(connection_t), 0x4000, MAX_CONNECTIONS, zero, zero)
+</code>
+
+<p>
+Taking our cue from Bonwick, we define the allocator interface simply thus: 
+</p>
+
+<code>
+kheap_t *make_heap(object_size, slab_size, max_objects, void *constructor(void *, size_t), void *destructor(void *, size_t))
+void dump_heap(kheap_t *heap)
+void heap_alloc(kheap_t *heap, u32 objs)
+void heap_free(kheap_t, *heap, void *obj)
+</code>
+
+<p>
+where behind the allocator we have the functions: 
+</p>
+
+<code>
+void expand_heap(kheap_t *heap)
+void contract_heap(kheap_t *heap)
+</code>
+
+<p>
+170333
+</p>
+
+</text>
+</post>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Allocator I" date="20090827:040751">
+<tag name="malloc" />
+<text>
+
+<p>
+Perhaps that was actually really not that bad: 
+</p>
+
+<code>
+#define KS_HEAP_BLOCK_SIZE 128
+#define KS_HEAP_SIZE 0x20000000
+
+typedef struct
+{
+  u32 start;
+  imap_t *ks_imap
+} ks_heap_t;
+
+ks_heap_t *kheap;
+
+void *ks_heap_alloc_block(ks_heap_t *heap){
+  u32 idx = imap_set_next(heap->ks_imap);
+  u32 address = idx * KS_HEAP_BLOCK_SIZE + heap->start;
+  get_a_frame(get_page(address, 1, kernel_dir), 1, 0);
+  return (void *)(address);
+}
+
+void *ks_heap_free_block(ks_heap_t *heap, u32 block_address){
+  u32 idx = (block_address - heap->start)/KS_HEAP_BLOCK_SIZE;
+  imap_clear(heap->ks_imap, idx);
+}
+
+void ks_heap_init(){
+  kheap = (ks_heap_t *)(kmalloc(sizeof(ks_heap_t)));
+  kheap->start = 0xC2000000;
+  kheap->ks_imap = imap_create(KS_HEAP_SIZE / KS_HEAP_BLOCK_SIZE);
+}
+</code>
+
+<p>
+We'll have another pass through that just in case (code written at 0400 tends
+to be dangerous, at any rate), but perhaps there was nothing to be scared of.
+Of course, testing will be interesting, but tomorrow.  
+</p>
+
+<p>
+040916
+</p>
+
+</text>
+</post>

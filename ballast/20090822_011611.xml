@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Going" date="20090822:011611">
+<tag name="debug" />
+<text>
+
+<p>
+The following (sloppily written) code prints out eax backwards when in segmented pmode
+</p>
+
+<code>
+        ;; 20090822 TESTING CODE
+        mov eax,0x89ABCDEF
+        mov ecx,0
+.ello:
+        mov edx,eax
+        and edx,0xF
+        mov bl,[adf+edx]
+        mov [0xb8000+2*ecx],bl
+        mov [0xb8001+2*ecx],byte 0x0F
+        shr eax,4
+        inc ecx
+        cmp ecx,8
+        jb .ello
+
+asd:    jmp asd
+
+adf:    dd '0123456789ABCDEF'
+        ;; END 20090822 TESTING CODE
+</code>
+
+<p>
+...
+</p>
+
+<p>
+AHA!  When we change 0x89ABCDEF to [ModeInfo_PhysBasePtr+BASE] we get the
+output 000000DF (i.e. 0xFD000000)!  
+</p>
+
+<p>
+But why then did printing to [0xF8000000] work (AND give the top left pixel on
+the screen)?
+</p>
+
+<p>
+Investigation is forthcoming.  
+</p>
+
+<p>
+...
+</p>
+
+<p>
+When we run with BASE-4 we get 0x00000000
+When we run with BASE+4 we get 0xFD15F900
+</p>
+
+<p>
+which are plausible values for ModeInfo_DirectColorModeInfo and
+ModeInfo_OffScreenMemOffset  respectively...  Maybe...
+</p>
+
+<p>
+So I doubt there's been something shifted in some annoying way, at any rate.  
+</p>
+
+<p>
+012727
+</p>
+
+</text>
+</post>

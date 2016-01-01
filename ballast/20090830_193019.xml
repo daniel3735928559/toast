@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Ramdisk Issues" date="20090830:193019">
+<tag name="map" />
+<tag name="initrd" />
+<text>
+
+<p>
+A further issue with locating the ramdisk is where do we put it on the floppy,
+and how do we pass this information to the kernel?  
+</p>
+
+<p>
+One approach that we shall be happy to try shortly is to put the ramdisk in
+some fixed place far above the kernel, say sector 0x100 and then happily load
+from there as needed.  
+</p>
+
+<p>
+There is a kludgy but general approach as well to have the make script fix all
+the values once it has compiled everything so it can see how big the binaries
+end up, but this is a bit nasty.  
+</p>
+
+<p>
+193434
+</p>
+
+</text>
+</post>

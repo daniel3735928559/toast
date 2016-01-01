@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Usermode GPF" date="20090902:235555">
+<tag name="debug" />
+<tag name="userland" />
+<text>
+
+<p>
+Aha!  Inserting the lines: 
+</p>
+
+<code>
+  print_hex_32(regs.int_no);
+  asm("hlt");
+</code>
+
+<p>
+at the start of our interrupt handler prints nothing (until we press a key or
+whatever) without the int 0x22, but outputs 'D' when we do--a general
+protection fault.  The same thing happens when we replace the interrupt call
+with 'hlt' or 'cli'.  So perhaps we don't have the privilege to call at least
+this interrupt from usermode.  Perhaps we need either to set some flag
+somewhere or to use a different interrupt (e.g. 0x80).  
+</p>
+
+<p>
+235929
+</p>
+
+</text>
+</post>

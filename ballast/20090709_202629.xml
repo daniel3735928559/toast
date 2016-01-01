@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Details details details..." date="20090709:202629">
+<tag name="plan" />
+<tag name="ipc" />
+<text>
+
+<p>
+I think we have an API decision.  After reading about various event-based
+architechures (particularly continuation based systems as used in Scheme) and
+worrying that these seemed nice but did not obviously lend themselves to the
+uses I intended to make possible, I think I have reconciled the issues.  
+</p>
+
+<p>
+One possibility is to switch to a completely event-driven system.  Connections
+could then be implemented by having a syscall (`connect') to automatedly
+register any node as a handler of your event (which will often serve, when
+fired, to send all handlers a command which can be processed as a function
+call).  
+</p>
+
+<p>
+This could be placed on the level of the system itself by having all
+nodes register their public functions as `available handlers' and then having
+any user fire the appropriate event when desired, but this has the problem of
+having to setup the interface on the fly, whereas IPC can be made more
+efficient if we declare at the outset that we want to talk to the ATA driver,
+set up shared memory at the beginning and then use it when necessary, as the
+setup is a potential bottleneck, especially for one-off things, whereas the
+cost of having many stale connections open at one time is meant to be
+minimal.  
+</p>
+
+<p>
+However, if registering as an event handler allocates space for allowing
+transfer of event-related data at the outset, then this is similar to
+allocating space for connection data anyways.  Other desirable operations may
+readily be simulated with events as well, for example splicing a connection
+can be accomplished by the splicer's registering as a handler to the desired
+`connection' event.
+</p>
+
+<p>
+Connections are good when there is a central server (e.g. a ATA driver) that
+you want to tell start some task and return the answer to you, but not so much
+for other things, like keyboard input, which you want to be accessible to
+multiple programs and would thus be best broadcast as an event.  
+</p>
+
+<p>
+??????
+</p>
+
+</text>
+</post>

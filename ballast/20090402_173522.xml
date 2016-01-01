@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Where are we now?" date="20090402:173522">
+<tag name="plan" />
+<tag name="ipc" />
+<tag name="hw" />
+<tag name="bootloader" />
+<text>
+
+<p>
+Now this week is over, we have a clear plan for what needs to be done next,
+now that all the low-level fiddliness is out of the way.  
+</p>
+
+<p>
+Current problems: 
+</p>
+
+<p>
+	Cannot move the stack:  
+</p>
+
+<p>
+	        When I try any further calls triple fault.  Unimportant, as
+	        it is out of the way anyway.
+</p>
+
+<p>
+	Interrupts are broken:
+</p>
+
+<p>
+		Pressing key->triple fault.  Possibly put back in the BASE
+		offset.
+</p>
+
+<p>
+In the short term: 
+</p>
+
+<p>
+   Allow allocation for kernel structures:
+</p>
+
+<p>
+   	 Have separate arrays of pointers for each type of struct and either
+   	 have separate areas in vmem allocated for sticking in the actual
+   	 structures (with stored corresponding array of pointers) 
+</p>
+
+<p>
+   Prepare the page tables for the kernel mapping:
+</p>
+
+<p>
+   	 These will just be analogous to the ones prepared in stage2, except
+   	 without the identity mapping of the first loads.  
+</p>
+
+<p>
+   Get the ramdisk working:
+</p>
+
+<p>
+       	 Loading it into memory in the correct place should no longer be a
+       	 problem, and the code for access/writing is already in place--just
+       	 needs a good debug.  
+</p>
+
+<p>
+   Get multitasking and IPC working:
+</p>
+
+<p>
+         This is the single biggest goal, and is the aim for by the end of the
+         month.  The scheme and associated structures I intend to use have
+         been documented extensively elsewhere, but there is much code yet to
+         write.
+</p>
+
+<p>
+   After this, need to get devices set up with their memory-mapped areas
+   mapped in PTs, and need to get into userspace (which should strictly be
+   some boilerplate).
+</p>
+
+<p>
+Other things that need fixing (For a release-quality system): 
+</p>
+
+<p>
+   Propsely disable A20 (stage1), detect video modes (stage2), and work out
+   memory map (stage2), passing this information to the kernel for reporting
+   during proper boot in some big struct.  Brendan has rants about all of
+   these that will be handy.  
+</p>
+
+<p>
+In the long term: 
+</p>
+
+<p>
+   Work out a decent interface descriptor language, as well as a decent way of
+   hooking both a GUI and a shell interface into this.  Ideally, this will
+   allow automation of dealings with programs where before you'd want to say
+   `move this slider a random amount', now it's `use the shell-side of the
+   interface (or just the bytestream through IPC, if you use the appropriate
+   protocol) to set the value to a random thing (which also happens to be the
+   value set by the slider of interest).  
+</p>
+
+<p>
+   However, this lays the question of where are the interface descriptors
+   stored?  We could make an executable format that is amenable to this sort
+   of thing, which would be good, but it'd be nice to at least be able to deal
+   with ELFs and the like as well.  To this end, we'd need to make a bunch of
+   includes available for processing IPC based possibly on an auxilliary
+   interface descriptor file (which could be in some analog of a resource fork
+   or something, to more canonically associate it with the file, but this is
+   not an interesting part of the design).  
+</p>
+
+<p>
+03:064032
+</p>
+
+</text>
+</post>

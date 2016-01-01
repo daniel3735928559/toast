@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Multitasking and IPC again" date="20090328:031031">
+<tag name="ipc" />
+<tag name="tasking" />
+<text>
+
+<p>
+I'd like to clarify this again, because I've been referring throughout to the
+notion of a task when officially, there is no such notion.  
+</p>
+
+<p>
+SCHEDULER: 
+</p>
+
+<p>
+The scheduler has a list of active nodes and, for now, switches between them
+in a simple rota.  This works independent of address space, but each behaves
+like it's in its own address space (has its own stack and whatnot).  
+</p>
+
+<p>
+LOADER: 
+</p>
+
+<p>
+The loader is told where to load a given node and the only difference between
+loading to a new address space and to an existing one is whether a new heap
+needs to be made and whether there's any dynamic linking to do.  
+</p>
+
+<p>
+Flowchart: 
+</p>
+
+<code>
+ START
+   |
+   |                           No
+ Target address space exists? ----> Make it
+   |                                  |
+   | Yes                              |
+   |                                  v
+   |                               Make heap
+   |                                  |
+   |                                  |
+   |                                  v
+   |               Find valid place in address space for code
+   |                                  |
+   |                                  v             Yes
+   +---------------------> Needs dynamic linking? ------> Link
+                                      |                    |
+                                      | No                 |
+                                      v                    |
+                            Make kernel stack  &lt;-----------+
+                                      |
+				      v
+              Load code and set up task struct, node struct, and TSS
+</code>
+
+<p>
+040141
+</p>
+
+
+</text>
+</post>

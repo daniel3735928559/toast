@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<index>
+<intro>
+<p>Welcome to ballast--the dev log for the abortive kernel project
+formerly known as Toast.  It was mainly written in
+stream-of-consciousness and only for my own personal reference, so I
+don't vouch for the coherence or utility of the content here.</p>
+
+<p>Toast was a valuable learning experience, and the old project page
+can still be found <a href="../index.html">here</a>.  The interesting
+bit of the kernel, or at least, the bit that I was actually most
+interested in actually seeing live--its IPC system design--was
+eventually moved to userland and became <a
+href="../../suit/mango">mango</a>.  </p>
+
+<p>Toast was initiated some time in 2007, after many much less
+well-informed efforts toward a pure assembly bootloader and kernel.
+Ballast was started later to alleviate the problem of `what command
+did I use last week to run qemu?' or `Didn't I fix a problem in this
+line of code a month ago?'</p>
+
+<p>ballast was originally maintained in a single plain-text file, and
+recently an army of bash scripts was employed to bludgeon it into its
+current form.  The original can be found <a
+href="./ballast">here</a>.</p>
+
+</intro>
+
+<post url="20090316_120950.xml" title="Where have we got to thus far? " date="20090316:120950"><tag name="plan"/></post>
+<post url="20090325_180200.xml" title="PCI Enumeration" date="20090325:180200"><tag name="hw"/><tag name="pci"/></post>
+<post url="20090326_130000.xml" title="More RTL8029 bashing and multitasking stuff" date="20090326:130000"><tag name="plan"/><tag name="net"/><tag name="hw"/></post>
+<post url="20090327_230514.xml" title="Updates and stuff" date="20090327:230514"><tag name="ipc"/><tag name="plan"/></post>
+<post url="20090328_023720.xml" title="Hacky-Stack" date="20090328:023720"><tag name="map"/><tag name="syscall"/><tag name="stack"/></post>
+<post url="20090328_031031.xml" title="Multitasking and IPC again" date="20090328:031031"><tag name="ipc"/><tag name="tasking"/></post>
+<post url="20090328_041651.xml" title="Ramdisk again" date="20090328:041651"><tag name="bootloader"/><tag name="map"/><tag name="initrd"/></post>
+<post url="20090328_124832.xml" title="Ramdisk and stack solutions, Part I" date="20090328:124832"><tag name="map"/><tag name="higherhalf"/><tag name="ramdisk"/></post>
+<post url="20090329_193933.xml" title="Getting there" date="20090329:193933"><tag name="bootloader"/><tag name="higherhalf"/></post>
+<post url="20090330_133825.xml" title="More hh fun--GDT mapping" date="20090330:133825"><tag name="map"/><tag name="bootloader"/></post>
+<post url="20090330_221308.xml" title="I might actually be that stupid" date="20090330:221308"><tag name="bootloader"/><tag name="higherhalf"/></post>
+<post url="20090331_013234.xml" title="Going..." date="20090331:013234"><tag name="whinge"/></post>
+<post url="20090331_122237.xml" title="PT oops" date="20090331:122237"><tag name="paging"/><tag name="bootloader"/></post>
+<post url="20090331_170037.xml" title="I'm an idiot II" date="20090331:170037"><tag name="whinge"/><tag name="bootloader"/></post>
+<post url="20090331_223038.xml" title="QEMU+GDB" date="20090331:223038"><tag name="paging"/><tag name="bootloader"/><tag name="qemu"/><tag name="gdb"/></post>
+<post url="20090401_001731.xml" title="Counting" date="20090401:001731"><tag name="whinge"/></post>
+<post url="20090401_015050.xml" title="General thoughts" date="20090401:015050"><tag name="ipc"/><tag name="plan"/></post>
+<post url="20090401_210121.xml" title="Hmph" date="20090401:210121"><tag name="whinge"/><tag name="paging"/></post>
+<post url="20090402_041041.xml" title="I'm an IDIOT" date="20090402:041041"><tag name="paging"/></post>
+<post url="20090402_173522.xml" title="Where are we now?" date="20090402:173522"><tag name="plan"/><tag name="ipc"/><tag name="hw"/><tag name="bootloader"/></post>
+<post url="20090404_135816.xml" title="Kernel Structures" date="20090404:135816"><tag name="map"/></post>
+<post url="20090406_210327.xml" title="IPC Again" date="20090406:210327"><tag name="plan"/><tag name="ipc"/></post>
+<post url="20090407_012653.xml" title="Kernel Struct Logic" date="20090407:012653"><tag name="map"/><tag name="paging"/></post>
+<post url="20090413_165452.xml" title="Reboot" date="20090413:165452"><tag name="malloc"/><tag name="plan"/><tag name="ipc"/></post>
+<post url="20090627_014651.xml" title="Reboot II" date="20090627:014651"><tag name="plan"/><tag name="ipc"/><tag name="vesa"/></post>
+<post url="20090709_202629.xml" title="Details details details..." date="20090709:202629"><tag name="plan"/><tag name="ipc"/></post>
+<post url="20090817_011230.xml" title="Practical Thoughts" date="20090817:011230"><tag name="plan"/><tag name="ipc"/></post>
+<post url="20090818_181932.xml" title="A Refresher in the Details and a Plan for Victory" date="20090818:181932"><tag name="plan"/><tag name="api"/><tag name="map"/></post>
+<post url="20090822_004500.xml" title="Going" date="20090822:0045??"><tag name="whinge"/><tag name="vesa"/></post>
+<post url="20090822_011611.xml" title="Going" date="20090822:011611"><tag name="debug"/></post>
+<post url="20090822_013522.xml" title="Going" date="20090822:013522"><tag name="debug"/><tag name="vesa"/></post>
+<post url="20090822_032014.xml" title="Going" date="20090822:032014"><tag name="debug"/><tag name="bootloader"/></post>
+<post url="20090822_210823.xml" title="Going insane" date="20090822:210823"><tag name="debug"/><tag name="bootloader"/><tag name="qemu"/><tag name="gdb"/></post>
+<post url="20090823_030654.xml" title="Going" date="20090823:030654"><tag name="debug"/></post>
+<post url="20090823_225943.xml" title="Going" date="20090823:225943"><tag name="vesa"/><tag name="gdb"/><tag name="debug"/></post>
+<post url="20090824_111655.xml" title="Schedule" date="20090824:111655"><tag name="plan"/></post>
+<post url="20090824_150154.xml" title="Moving the Kernel Loader into Stage 2" date="20090824:150154"><tag name="hw"/><tag name="debug"/></post>
+<post url="20090824_170842.xml" title="On kalloc" date="20090824:170842"><tag name="malloc"/><tag name="paging"/></post>
+<post url="20090825_130515.xml" title="Paging" date="20090825:130515"><tag name="debug"/><tag name="paging"/></post>
+<post url="20090825_131706.xml" title="Paging on RHW" date="20090825:131706"><tag name="debug"/><tag name="qemu"/><tag name="map"/><tag name="paging"/></post>
+<post url="20090825_183814.xml" title="Paging idiocy--the dangers of uninitialized memory" date="20090825:183814"><tag name="debug"/><tag name="paging"/></post>
+<post url="20090826_181618.xml" title="Kernel Struct Allocator" date="20090826:181618"><tag name="plan"/><tag name="malloc"/></post>
+<post url="20090827_040751.xml" title="Allocator I" date="20090827:040751"><tag name="malloc"/></post>
+<post url="20090827_125220.xml" title="Allocator testing" date="20090827:125220"><tag name="malloc"/></post>
+<post url="20090830_183228.xml" title="Allocator and Ramdisk" date="20090830:183228"><tag name="initrd"/><tag name="map"/><tag name="malloc"/></post>
+<post url="20090830_193019.xml" title="Ramdisk Issues" date="20090830:193019"><tag name="map"/><tag name="initrd"/></post>
+<post url="20090831_171104.xml" title="Ramdisk Insanity" date="20090831:171104"><tag name="debug"/><tag name="initrd"/></post>
+<post url="20090901_015929.xml" title="Ramdisk Working... Maybe..." date="20090901:015929"><tag name="initrd"/></post>
+<post url="20090902_053909.xml" title="Userland Homework" date="20090902:053909"><tag name="plan"/><tag name="userland"/></post>
+<post url="20090902_110150.xml" title="TSS Stage 1" date="20090902:110150"><tag name="gdb"/><tag name="tasking"/><tag name="qemu"/></post>
+<post url="20090902_183138.xml" title="Usermode" date="20090902:183138"><tag name="debug"/><tag name="userland"/><tag name="qemu"/></post>
+<post url="20090902_235555.xml" title="Usermode GPF" date="20090902:235555"><tag name="debug"/><tag name="userland"/></post>
+<post url="20090903_001200.xml" title="More on the GPF" date="20090903:001200"><tag name="debug"/><tag name="userland"/></post>
+<post url="20090908_172635.xml" title="Tasking and Allocator II" date="20090908:172635"><tag name="plan"/><tag name="malloc"/><tag name="tasking"/></post>
+<post url="20090909_133333.xml" title="Alligator II (continued)" date="20090909:133333"><tag name="malloc"/></post>
+<post url="20090909_182759.xml" title="Alligator III--A heap of heaps!" date="20090909:182759"><tag name="map"/><tag name="malloc"/></post>
+<post url="20090910_212111.xml" title="A brief note about non-urgent TODOs" date="20090910:212111"><tag name="vesa"/><tag name="map"/><tag name="plan"/></post>
+<post url="20090922_034805.xml" title="Alligator; Physmem Mgr within Vmem Mgr" date="20090922:034805"><tag name="map"/><tag name="malloc"/></post>
+<post url="20090928_131338.xml" title="Tasking" date="20090928:131338"><tag name="plan"/><tag name="tasking"/></post>
+<post url="20091209_163652.xml" title="BACK AGAIN!" date="20091209:163652"><tag name="plan"/></post>
+<post url="20091210_173530.xml" title="Allocator Remix" date="20091210:173530"><tag name="malloc"/></post>
+<post url="20091212_021655.xml" title="Allocator Things" date="20091212:021655"><tag name="map"/><tag name="malloc"/></post>
+<post url="20091212_115353.xml" title="Function Pointers Note" date="20091212:115353"><tag name="C"/></post>
+<post url="20091212_160212.xml" title="Testing" date="20091212:160212"><tag name="debug"/><tag name="malloc"/></post>
+<post url="20091219_143434.xml" title="What to do" date="20091219:143434"><tag name="vesa"/><tag name="map"/></post>
+<post url="20091222_140355.xml" title="RAM Moving" date="20091222:140355"><tag name="paging"/><tag name="vesa"/><tag name="map"/></post>
+<post url="20091223_233710.xml" title="Allocator Testing" date="20091223:233710"><tag name="malloc"/></post>
+<post url="20091224_011755.xml" title="Things to Allocate" date="20091224:011755"><tag name="plan"/><tag name="malloc"/></post>
+<post url="20091226_201255.xml" title="Reworking Paging" date="20091226:201255"><tag name="paging"/></post>
+<post url="20091227_015300.xml" title="Physical and Vitrual Allocators' Interactions" date="20091227:015300"><tag name="map"/><tag name="malloc"/><tag name="paging"/></post>
+<post url="20100628_142613.xml" title="Reboot, plus ...Toppings!" date="20100628:142613"><tag name="plan"/><tag name="ipc"/></post>
+<post url="20100629_194904.xml" title="Multitasking!" date="20100629:194904"><tag name="tasking"/></post>
+<post url="20100630.xml" title="Tasking and IPC!" date="20100630:120023"><tag name="ipc"/><tag name="tasking"/></post>
+</index>

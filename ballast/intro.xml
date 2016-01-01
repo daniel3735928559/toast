@@ -1,0 +1,26 @@
+<intro>
+<p>Welcome to ballast--the dev log for the abortive kernel project
+formerly known as Toast.  It was mainly written in
+stream-of-consciousness and only for my own personal reference, so I
+don't vouch for the coherence or utility of the content here.</p>
+
+<p>Toast was a valuable learning experience, and the old project page
+can still be found <a href="../index.html">here</a>.  The interesting
+bit of the kernel, or at least, the bit that I was actually most
+interested in actually seeing live--its IPC system design--was
+eventually moved to userland and became <a
+href="../../suit/mango">mango</a>.  </p>
+
+<p>Toast was initiated some time in 2007, after many much less
+well-informed efforts toward a pure assembly bootloader and kernel.
+Ballast was started later to alleviate the problem of `what command
+did I use last week to run qemu?' or `Didn't I fix a problem in this
+line of code a month ago?'</p>
+
+<p>ballast was originally maintained in a single plain-text file, and
+recently an army of bash scripts was employed to bludgeon it into its
+current form.  The original can be found <a
+href="./ballast">here</a>.</p>
+
+</intro>
+

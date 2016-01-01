@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Function Pointers Note" date="20091212:115353">
+<tag name="C" />
+<text>
+
+<p>
+Because the allocator has information about the construction and destruction
+of its member objects, it has to have function pointers to the constructor and
+destructor for those objects, which involves function pointers.  
+</p>
+
+<p>
+Just to note--mostly for my future self, as it is something unlikely to be
+used frequently, so easy to forget: 
+</p>
+
+<p>
+In the kheap_t struct, we have: 
+</p>
+
+<code>
+void *(*constructor)(void *);
+</code>
+
+<p>
+which signifies a function taking one void pointer argument, returning a void
+pointer, and that it is a pointer to such a function (which is why the second
+star is there).
+</p>
+
+<p>
+Then, the initialization function which will take this function as an input
+has signature: 
+</p>
+
+<code>
+kheap_t *kheap_init(kheap_t *heap, u32 b_size, u32 s_size, u32 m_size, u32
+init_slabs, u32 align, void * (*constr)(void *), void *(*destr)(void *), void
+*location){
+</code>
+
+<p>
+Same reasoning behind this.  And now, when we wish to call this function, we
+define a function of appropriate signature thus: 
+</p>
+
+<code>
+void *zero(void *a){ *((u32 *)(a)) = 0; }
+</code>
+
+<p>
+and then pass its address as the pointer to the function, thus: 
+</p>
+
+<code>
+kheap_init(node_heap, sizeof(node_t), align_by(sizeof(node_t), 4096),
+NODE_HEAP_SIZE, 1, 0, &amp;zero, &amp;zero, (void *)NODE_HEAP_START);
+</code>
+
+<p>
+165922
+</p>
+
+</text>
+</post>

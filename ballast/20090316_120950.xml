@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Where have we got to thus far? " date="20090316:120950">
+<tag name="plan" />
+<text>
+
+<p>
+We have booting completed, which loads a pre-defined extent of blocks from the
+floppy into RAM which are understood to contain the kernel, and jumps there
+after initializing the video mode to something pre-determined.
+</p>
+
+<p>
+Then we initialize paging and the kernel heap, which is a blob of code for
+which I have partially forgotten the inner workings but which is not quite
+correct--I need to identity-map more frames than I ought to get things working
+at the moment (and thus set the heap further along).  I do not understand
+this, and will go back and write up a more thorough description of what
+happened there (as well as of the details of how this code works (despite that
+most of it should be rather standard).
+</p>
+
+<p>
+For now, though, we'll bash on regardless, as there is a workaround (namely,
+ID-map a whole bunch of RAM until it works), which is terrible, but unlikely
+to interfere with anything later on.
+</p>
+
+<p>
+123256
+</p>
+
+</text>
+</post>

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="PCI Enumeration" date="20090325:180200">
+<tag name="hw" />
+<tag name="pci" />
+<text>
+
+<p>
+A random interlude in all the initrd/vfs programming that's bogged me down the
+last week: PCI enumeration!  
+</p>
+
+<p>
+We've got PCI devices enumerated on bus 0 only.  (Enumerating for slot all the
+way up to 65536 or for higher busses seems to triple-fault.  Will investigate
+more in the future, but for now we see everything necessary by getting things
+only from bus 0 and only up to slot 100.)  The output is given as: 
+</p>
+
+<code>
+BUS     SLOT    VID     DID     HTYPE   BAR0    BAR1    BAR2    BAR3    BAR4	BAR5
+0	0	1106	3099	0	8	0	0	0	0	0
+0	1	1106	B099	1	0	0	100	D0D0	F700	F7F0
+0	5	13F6	111	0	B801	0	0	0	0	0
+0	D	10EC	8029	0	B401	0	0	0	0	0
+0	E	100B	20	0	B001	0	0	0	0	0
+0	F	10B7	9055	0	A801	0	0	0	0	0
+0	10	10EC	8139	0	A401	0	0	0	0	0
+0	11	1106	3074	80	0	0	0	0	0	0
+0	20	1002	5046	0	8	D801	0	0	0	0
+</code>
+
+<p>
+Also, I've had to resort to manually (with a screwdriver) shorting two of the
+pins on the motherboard to switch the computer on.  (Memo to my future self:
+it's the fifth pair from the back).  Naturally, I'd like to be able to reset
+it like this too (rather than having to unplug/replug the whole thing) but
+shorting other random pairs of pins only gets some scary beeps and some
+sparks.  Maybe some day I'll look it up properly, but for now, we'll play it
+safe and use the mains-switch on the wall.
+</p>
+
+<p>
+Now we'll fill some structs with the relevant data and parse it for the cases
+when it'll be meaningful (namely, 3Com 3c905x, RTL8029, RTL8139).  The
+relevant sections of the PCI vendor/device database are reproduced here
+(verbatim) as a memo to my future self:
+</p>
+
+<code>
+"0x10B7","0x9050","3Com Corporation","3C905B - Combo","Fast Etherlink XL PCI 10/100"
+"0x10B7","0x9051","3Com Corporation","3C905-T4","Fast Etherlink XL 10/100"
+"0x10B7","0x9055","3Com Corporation","3C905-TX","Fast Etherlink 10/100 PCI TX NIC"
+"0x10B7","0x9056","3Com Corporation","3C905B-T4","Fast EtherLink XL 10/100"
+"0x10B7","0x9058","3Com Corporation","3C905B-COMBO","Deluxe EtherLink 10/100 PCI Combo NIC"
+"0x10B7","0x905A","3Com Corporation","3C905B-FX","Fast EtherLink 100 Fiber NIC"
+"0x10B7","0x9200","3Com Corporation","3C905 CX-TX-M","Fast EtherLink for PCManagement NIC"
+</code>
+
+<code>
+"0x10EC","0x0139","Realtek Semiconductor","rtl8139B","ethernet 10/100"
+"0x10EC","0x0139_","Realtek Semiconductor","rtl8139B","ethernet 10/100"
+"0x10EC","0x8021","Realtek Semiconductor","RTL8029AS","NIC"
+"0x10EC","0x8029","Realtek Semiconductor","RTL8029(as)pci ethernet nic","windot XPse"
+"0x10EC","0x8129","Realtek Semiconductor","RTL8139d","10/100 Fast Ethernet Controller"
+"0x10EC","0x8138","Realtek Semiconductor","RT8139B/C","CardBus Fast Ethernet Adapter"
+"0x10EC","0x8139","Realtek Semiconductor","RTL-8139/8139C/8139C","Realtek RTL8139 Family PCI Fast Ethernet NIC"
+</code>
+
+<p>
+Because we're particularly eager, we'll go ahead and get sending with the
+RTL8029AS.  Upon completion, better organization will be sorted out and such.  
+</p>
+
+<p>
+Inspection of the ne2k-pci Linux module seems to indicate that the IO space
+based at io_base = (BAR0 &amp; 0xFFE0) (0xB400 in the above example) is not
+memory-mapped, but rather in actual IO space (i.e. refers to a set of IO ports
+reserved for the card by the BIOS at boot time).  
+</p>
+
+<p>
+The best understanding I have of the spec at the moment is the following: The
+card registers proper (not the ones in PCI config land that are seen above)
+are accessed by reading as inb(io_base + offset) where 0 &lt;= offset &lt;= 0x0F.
+However, there are 64 one-byte registers available, each in 16-byte `pages'
+(as the spec calls them).  But you see that we are only given a range of 16
+bytes to access in IO space, so this looks infeasible at first.  However, the
+means they give for accessing the further registers is by writing a `page
+number' (0 through 3) to the high two bits of the command register (always
+found at io_base + 0x00).  This will select a current page of registers that
+will be read/written by all future accesses until a new page is selected.  
+</p>
+
+<p>
+So for example, if you write outb(io_base, inb(io_base) &amp; 10111111b)
+(i.e. select page 2), then reading inb(io_base + 0x01) will give out the value
+of PSTART.
+</p>
+
+<p>
+I'll short-hand the writing of registers to write(REG_NAME, value).  
+</p>
+
+<p>
+235000
+</p>
+
+</text>
+</post>

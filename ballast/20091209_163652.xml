@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="BACK AGAIN!" date="20091209:163652">
+<tag name="plan" />
+<text>
+
+<p>
+HA!  Ha ha.  Ha...  Term is over, and time to get this thing moving again,
+aye?  Um.  But where were we?  
+</p>
+
+<p>
+Our goals from before went something like this: 
+</p>
+
+<p>
+-Page-table remapping<br />
+-Kernel struct allocator<br />
+-Ramdisk loading<br />
+-Userland/Syscalls<br />
+-Multitasking<br />
+-IPC
+</p>
+
+<p>
+Where the first four were more or less done by the end of the previous break,
+and the final two were given (in some sense) by the skeleton code above.
+There remain worries about the allocator, however, which is somewhat untested,
+so the best course of action seems to be to clean up the first four and get
+them working together nicely, and then implement tasking/IPC on top (as this
+should be somewhat easy as long as the allocator works--just allocate and fill
+out the relevant structs as appropriate).
+</p>
+
+<p>
+10:002325
+</p>
+
+</text>
+</post>

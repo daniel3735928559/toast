@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Allocator Remix" date="20091210:173530">
+<tag name="malloc" />
+<text>
+
+<code>
+void *alloc(u32 size){ heap_end += size; return (void *)(heap_end - size); }
+void free(void *data){ return; }
+</code>
+
+<p>
+No, sorry--just kidding.  Revising the allocator and realizing that the
+conversion data address -> descriptor address and back is nasty, (albeit O(1)),
+and therefore considering whether we can save on some of this at least by
+storing more information.  For instance, we can convert backwards more easily
+by storing physical block address in the descriptor, and then the only problem
+is going the other way, but at least this is possible.  
+</p>
+
+<p>
+12:021640
+</p>
+
+</text>
+</post>

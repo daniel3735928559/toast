@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Testing" date="20091212:160212">
+<tag name="debug" />
+<tag name="malloc" />
+<text>
+
+<p>
+So the code for paging, allocator, ramdisk, and syscalls is all finished, and
+we spend the next few days testing and polishing before moving on to the real
+meat of the matter--IPC.  
+</p>
+
+<p>
+Init looks like: 
+</p>
+
+<code>
+kheap_t *node_heap;
+
+#define NODE_HEAP_START 0xC1000000
+#define NODE_HEAP_SIZE 0xE000000
+void *zero(void *a){ *((u32 *)(a)) = 0; }
+
+void ks_heap_init(){
+  kheap_init(node_heap, sizeof(node_t), align_by(sizeof(node_t), 4096), NODE_HEAP_SIZE, 1, 0, &amp;zero, &amp;zero, (void *)NODE_HEAP_START);
+}
+
+void init(u32 vidstart, u32 rdstart, u32 tss_start)
+{
+  monitor_init((pixel_t *)vidstart);
+  prints("INITIALIZING PAGING!          ");
+  paging_init();
+  prints("DONE!\nINITIZING KERNEL ALLOCATOR!   ");
+  ks_heap_init();
+  prints("DONE!\nPREPARING RAMDISK!            ");
+  rd_init((void *)rdstart);
+  prints("DONE!\nENTERING USERLAND!            ");
+  u32 espv;
+  asm volatile("mov %%esp, %0": "=r"(espv));
+  tss_init((tss_entry_t *)tss_start, 0x10, espv);
+  //tasking_init(tss_start);
+  prints("DONE!\nCONFIGURING PCI DEVICES!      ");
+  //pci_init();
+  prints("DONE!\nBOOTING COMPLETE!");
+}
+</code>
+
+<p>
+and issues the output: 
+</p>
+
+<code>
+INITIALIZING PAGING!          DONE!
+INITIZING KERNEL ALLOCATOR!   PAGE FAULT: at 0x4 with error code 10
+</code>
+
+<p>
+Hmph...
+</p>
+
+<p>
+Right--we need to allocate the node_heap before filling it out and we need to
+check for block_size == 0 in align_by to avoid divide-by-zero errors.  
+</p>
+
+<p>
+Now when we call expand, we get 
+</p>
+
+<code>
+PAGE FAULT: at 0xFFFFFFFC with error code
+</code>
+
+<p>
+Hmph...
+</p>
+
+<p>
+This seems to be a problem with the page allocation bit...
+</p>
+
+<p>
+Erk.  
+</p>
+
+<code>
+setm((u32 *)(frames_map->bitmap->bits), num_frames, 0);
+
+-> 
+
+setm((u32 *)(frames_map->bitmap->bits), num_frames/32, 0);
+</code>
+
+<p>
+But further, this is already done in bitmap.c.  WHAT ON EARTH?!  
+</p>
+
+<p>
+Anyways.  Sorted.  
+</p>
+
+<p>
+Now we get 
+</p>
+
+<code>
+PAGE FAULT: at 0xE100000C with error code
+</code>
+
+<p>
+Now what?
+</p>
+
+<p>
+Erk.  Stack difficulties--Our stack push function was: 
+</p>
+
+<code>
+int stack_push(stack_t *s, u32 x){
+  if(s->top - s->base >= s->max){
+    return -1;
+  }
+  *(++(s->top)) = x;
+  return 0;
+}
+</code>
+
+<p>
+Whereas, for one, we have the top being below where it is supposed to be at
+all times, so this is guaranteed to mess up at the start, given that we have
+stack->top = stack_base - 1 then.  
+</p>
+
+<p>
+We fix: 
+</p>
+
+<code>
+u32 stack_push(stack_t *s, u32 x){
+  if(s->top - s->base >= s->max &amp;&amp; s->top - s->base != -1){
+    return -1;
+  }
+  s->top += 1;
+  *(s->top) = x;
+  return 0;
+}
+</code>
+
+<p>
+Now the stack looks somewhat correct (will check more precisely later), but
+we get 
+</p>
+
+<code>
+PAGE FAULT: at 0x0 with error code 
+</code>
+
+<p>
+HARUMPH!  
+</p>
+
+<p>
+Actually, it looks like we broke the paging initialization now...
+</p>
+
+<p>
+ARGH! 
+</p>
+
+<p>
+Evidently it happens on the call to switch_pagedir...
+</p>
+
+<p>
+One thing that is evident is that earlier, as the stack always starts out
+with s->top = s->base - 1, calls to stack_push do nothing.  Now that they do
+in fact do something, we see problems, which we can get rid of by eliminating
+calls to stack push in imap_create (well, not get rid of so much as cover
+over).  
+</p>
+
+<p>
+Interestingly, if we do the first 26760 stack pushes thus: 
+</p>
+
+<code>
+imap_t *imap_create(u32 size)
+{
+  imap_t *imap = (imap_t *)kmalloc(sizeof(imap_t));
+  imap->bitmap = bitmap_create(size*8);
+  imap->stack = stack_create(size);
+  u32 i;
+  for(i = 0; i &lt; 26760; i++){
+    stack_push(imap->stack, size - 1 - i);
+  }
+  return imap;
+}
+</code>
+
+<p>
+we get the result 
+</p>
+
+<code>
+PAGE FAULT: at 0x8 with error code 10
+</code>
+
+<p>
+and the prints calls that execute indicate that alloc_pages_for completes
+successfully (!?).  And we get this same result for when we do any number of
+stack pushes between 1 and 26760.  But when we do more than 26760, we get a
+failure on switch_pagedir.  (Also interesting, 26760 = 0x6888.  Hmm...).  On
+the other hand, if we do no stack pushes, we get 
+</p>
+
+<code>
+PAGE FAULT: at 0xD0000008 with error code 10
+</code>
+
+<p>
+So perhaps the stack is stepping on something or is otherwise broken, and has been all
+along.  
+</p>
+
+<p>
+Ah.  For one thing, to allocate space for the stack we need to grab 4*(s->max)
+bytes, rather than s->max bytes, considering that the stack takes u32s as its
+elements.  (Same holds for bitmap_t, and same adjustments have been made.)  
+</p>
+
+<p>
+This removes the 0x6888 problem (which seems to have been occuring because the
+stack started at 0xC100401C in vmem, i.e. 0x3401C in physmem, and
+0x3401C+0x6888*4 = 0x4E23C, which means that the stack would have been
+stepping on the page mapping for memory starting at 0.  
+</p>
+
+<p>
+Having adjusted this as appropriate, we now get the same behaviour for values
+greater than 0x6888 as for those less than 0x6888, but this is in turn the
+same behaviour as above, i.e. it is different when we allocate anything on the
+stack compared with when we don't.  This is still mysterious.  
+</p>
+
+<p>
+Perhaps this stack steps on the actual (esp/ebp-defined) stack?  Where did
+that go anyways?  Apparently it lives between 0x80000 and 0x90000, if we
+believe the most recent reference found above, and indeed, stage2.asm and
+paging.c corroborate this.  
+</p>
+
+<p>
+On the other hand, by all appearances, after the previous adjustments, our
+page directory now resides at (dun dun dun) 0x82000, and the page tables creep
+up to 0x8E000.  This is, if not a disaster right now, certainly a recipe for
+future catastrophe.  However, it is questionable whether this is the cause of
+our current crisis, considering the stack doesn't appear to stretch down below
+0x8FCE2, and the PD/PT data doesn't encroach beyond 0x8E000.  So it seems that
+we should have been safe?
+</p>
+
+<p>
+Nonetheless, we shall shortly have to do some physical memory reorganization.
+(The simplest way to do this, I suspect, is to define a `kernel data' area
+that lives beyond the stack, in which all kernel pagedirs and associated
+stacks and bitmaps and other such things shall reside, and which we can expand
+with impunity.)
+</p>
+
+<p>
+However, until then, we note that the prints's seem to tell us that the
+problem occurs when we call 
+</p>
+
+<code>
+get_block_info(heap, &amp;info, new_slab_start);
+</code>
+
+<p>
+and more precisely, on the line 
+</p>
+
+<code>
+info->schunk_start = (void *)(schunk_index * (heap->schunk_size) + (heap->start));
+</code>
+
+<p>
+Actually.  Wait.  Blah.  
+</p>
+
+<p>
+If we put the stack pushes back (all of them), the only problem we get is
+the page fault at 0x8, where we do appear (as indicated by the prints lines)
+to make it out of the get_block_info call.  
+</p>
+
+<p>
+But in fact, this makes sense because we are doing things like: 
+</p>
+
+<p>
+info.slab_desc->start = new_slab_start;
+</p>
+
+<p>
+where info.slab_desc has just been computed as the pointer to the slab
+descriptor RELATIVE TO THE START OF THE HEAP!  So we just need to add the
+start offset of the heap to everything and then we should have some kind of
+success.  
+</p>
+
+<p>
+AAAAaaaaaaaand, compare: 
+</p>
+
+<code>
+get_block_info(heap, &amp;info, new_slab_start);
+</code>
+
+<code>
+void get_block_info(kheap_t *heap, void *block_start, block_info_t *info)
+</code>
+
+<p>
+BLAH!
+</p>
+
+<p>
+Just as a warning--the heap appears not to be properly mapped, possibly, as,
+according to the QEMU monitor, 
+</p>
+
+<code>
+0x82D00: 0x0008C007 0x00000000 ...
+...
+0x8C000: 0x00000007 0x00000000 ...
+</code>
+
+<p>
+So somehow, the physical allocator has assigned the block of memory starting
+at 0 to the heap.  We test more fully later, but it appears for now that
+alloc_pages_for is working entirely correctly.  
+</p>
+
+<p>
+Now, when we output the block info, we see: 
+</p>
+
+<code>
+schunk_start: D0000000
+bchunk_start: D0000000
+block_desc: 62494B60
+slab_desc: CFFF0010
+</code>
+
+<p>
+What.  
+</p>
+
+<p>
+Followed by 
+</p>
+
+<code>
+PAGE FAULT: at 0xCFFF0010 with error code 10
+</code>
+
+<p>
+No kidding.  
+</p>
+
+<p>
+So our arithmetic is wrong somewhere...
+</p>
+
+<p>
+Ah.  No it's not, my brain is just wrong somewhere.  We allocate the metadata
+blocks when we get to the end of a chunk, rather than at the start, so the
+start of the new slab will always be the end of the current heap.  Now that's
+fixed, and we get 
+</p>
+
+<code>
+PAGE FAULT: at 0x8 with error code 10
+</code>
+
+<p>
+...
+</p>
+
+<p>
+This grows slightly tiresome--in the future, all code should be tested after
+every new line is written to ensure proper behaviour, rather than this `write
+a bunch and spend five days debugging' garbage.  
+</p>
+
+<p>
+Oh yeah--last_free_slab could be NULL.  
+</p>
+
+<p>
+AND NOW IT WORKS!  
+</p>
+
+<p>
+At least, no page faults, and the debug print looks normal.  Will check more
+fully later, but for now I think we've earned a WHEW!
+</p>
+
+<p>
+Not fully out of the woods though, as we shall have to do some physical memory
+reorganization in the near future, so it's back to dangerland.  
+</p>
+
+<p>
+18:131808
+</p>
+
+</text>
+</post>

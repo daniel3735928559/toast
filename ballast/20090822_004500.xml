@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Going" date="20090822:0045??">
+<tag name="whinge" />
+<tag name="vesa" />
+<text>
+
+<p>
+hh now triple faults on boot, seemingly when we try to do anything with
+vidmem.  
+</p>
+
+<code>
+mov eax,[ModeInfo_PhysBasePtr+BASE]
+mov [eax],dword 0xFFFFFFFF
+</code>
+
+<p>
+fails, whereas
+</p>
+
+<code>
+mov eax,dword 0xF8000000
+mov [eax],dword 0xFFFFFFFF
+</code>
+
+<p>
+has the correct effect.  
+</p>
+
+<p>
+What?  
+</p>
+
+<p>
+005141
+</p>
+
+</text>
+</post>

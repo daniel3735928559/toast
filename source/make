@@ -1,0 +1,13 @@
+nasm boot.asm -o boot.bin;
+nasm stage2.asm -o stage2.bin;
+
+nasm kinit.asm -f elf -o kinit.o;
+gcc -c kernel.c -o kernel.o -ffreestanding -nostdlib -nostartfiles -m32;
+ld -melf_i386 -T linkscript.ld -o kernel.bin kinit.o kernel.o;
+
+cat boot.bin stage2.bin > kernel.img;
+
+dd bs=512 seek=10 if=kernel.bin of=kernel.img;
+dd bs=512 seek=$((0x50)) if=./initrd/initrd.img of=kernel.img
+dd bs=512 seek=$((0x60)) if=/dev/zero of=kernel.img count=1
+

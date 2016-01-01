@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="On kalloc" date="20090824:170842">
+<tag name="malloc" />
+<tag name="paging" />
+<text>
+
+<p>
+Now we're in kernel land and tackling the idea of paging, and we need some
+sort of free memory to play with at the outset (for a place to put the
+paging-related structures and such), and we don't have this available to us
+yet.  I suppose we are forced to map in some other blob of physical memory in
+stage2 for this purpose...   
+</p>
+
+<p>
+This works fine, though the page fault handler seems to be triggered
+repeatedly forever when we get a single page fault?  Maybe this is the
+end-of-interrupt thing we've heard about but never bothered to look
+into/implement.  Something to do, eventually.  Until then, we can now try to
+get paging working...
+</p>
+
+<p>
+22????
+</p>
+
+</text>
+</post>

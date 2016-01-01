@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="More RTL8029 bashing and multitasking stuff" date="20090326:130000">
+<tag name="plan" />
+<tag name="net" />
+<tag name="hw" />
+<text>
+
+<p>
+Wrote skeleton RTL8029 initize and send routines according to RTL8029AS.pdf.
+</p>
+
+<p>
+Now going back to to multitasking and initrd things after dinner.  
+</p>
+
+<p>
+It's as yet a bit unclear how useful the initrd/vfs structure will be.  Rather
+than have a file-system as a built-in paradigm, it seems better to just load a
+block of starter nodes (which will include network drivers and hard disk
+drivers and floppy drivers, of course, for loading anything else that might be
+needed for initialization).  This amounts to essentially just throwing the VFS
+out of kernel-land and sticking with a simplified concept of initrd, which is
+nice and easy to implemenent.  
+</p>
+
+<p>
+Naturally, the boot process can be logged and the initrd updated with whatever
+is found to have been needed in the early stages of initialization, but that's
+a separate matter.  
+</p>
+
+<p>
+235800
+</p>
+
+</text>
+</post>

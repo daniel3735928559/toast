@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Allocator Things" date="20091212:021655">
+<tag name="map" />
+<tag name="malloc" />
+<text>
+
+<p>
+So perhaps we now have a complete picture (if not implementation) of the final
+allocator: 
+</p>
+
+<p>
+The physical layout is essentially as pictured somewhere far above, which we
+reproduce (To scale! Or something!) in small version here: 
+</p>
+
+<code>
+|Slab descriptors                           | SCHUNK  |
+|Block descriptors   	       | BCHUNK	    |	      |
+|Blocks...          | Slab     |	    |	      |
+|Waste              |	       | 	    |	      |
+|...                           |	    |	      |
+|Blocks...          | Slab     |	    |	      |
+|Waste              |	       |	    |	      |
+|					    |	      |
+|Block descriptors             | BCHUNK	    |	      |
+|Blocks...          | Slab     |	    |	      |
+|Waste              |	       | 	    |	      |
+|...                           |	    |	      |
+|Blocks...          | Slab     |	    |	      |
+|Waste              |	       |	    |	      |
+|...                	       |	    |	      |
+|...                	                    |	      |
+|					    |	      |
+|Block descriptors  	       | BCHUNK	    |	      |
+|Blocks...          | Slab     |	    |	      |
+|Waste              |	       |	    |	      |
+|...                           |	    |	      |
+|Blocks...          | Slab     |	    |	      |
+|Waste              |	       |	    |	      |
+|                   	      		   	      |
+|Slab descriptors   	      		    | SCHUNK  |
+|					    |	      |
+|Block descriptors  	       | BCHUNK	    |	      |
+|Blocks...          | Slab     |	    |	      |
+|Waste              |	       |	    |	      |
+|...                           |	    |	      |
+|Blocks...          | Slab     |	    |	      |
+|Waste              |	       |	    |	      |
+|.....................................................|
+|.....................................................|
+|.....................................................|
+</code>
+
+<p>
+But this is only half the story, how we access this and what data we store for
+this purpose is the rest.  To the end of elucidating this, we go through the
+structs in their current state: 
+</p>
+
+<p>
+SLAB DESCRIPTOR: 
+</p>
+
+<code>
+typedef struct slab_descriptor{
+  void *start;
+  u32 refcount;
+  slab_descriptor_t *next;
+  slab_descriptor_t *prev;
+} slab_descriptor_t;
+</code>
+
+<p>
+Slab descriptors go at the start of each SCHUNK.  Each descriptor has a
+pointer to the start of the physical slab itself (which, as mentioned
+somewhere abouve, could be calculated, but this is part of the time/space
+tradeoff).  It stores the refcount for that slab--i.e. how many blocks within
+that slab are in use at the moment.  
+</p>
+
+<p>
+The slabs of refcount zero may be freed at some point via contraction, so
+we'll want to keep track of them--in this case, by placing them on a
+doubly-linked list--the slab freelist.  This will be updated at each
+alloc/free and manipulated during expansion/contraction.  
+</p>
+
+<p>
+BLOCK DESCRIPTOR: 
+</p>
+
+<code>
+typedef struct block_descriptor{
+  void *start;
+  slab_descriptor_t *slab_desc;
+  void *prev;
+  void *next;
+} block_descriptor_t;
+</code>
+
+<p>
+Like a slab descriptor, each block descriptor points to its physical start,
+and also contains a pointer to the slab descriptor corresponding to the slab
+that its block is in.  Also like the slab descriptors, the free blocks are
+placed on a freelist, this time not for the purpose of contracting, but for
+finding a free block to satisfy any allocation requests that may come around.
+Note that we may optimize by placing blocks within a contracted slab at the
+end of the block freelist, so that these will not be used for allocations
+unless absolutely necessary.  This will make contractions take longer, but
+perhaps, as this is expected to be a rare operation anyways, this may be
+beneficial.  
+</p>
+
+<p>
+BLOCK INFO: 
+</p>
+
+<code>
+typedef struct block_info{
+  block_descriptor_t *block_desc;
+  slab_descriptor_t *slab_desc;
+  void *schunk_start;
+  void *bchunk_start;
+} block_info_t;
+</code>
+
+<p>
+As mentioned several times, we want to be able to go from block location
+information to the metadata without having some pointer actually stored within
+the block (which could step on constructed state or make alignment suboptimal
+if not).  We do this by having a function that can fill out a struct of
+pointers to all the relevant metadata we could ever ask for, namely, the
+descriptos for the corresponding block and slab, as well as the start of the
+schunk and the bchunk in which this block and slab live.  
+</p>
+
+<p>
+The method of doing this is simple, and is as follows: 
+</p>
+
+<code>
+void get_block_info(kheap_t *heap, void *block_start, block_info_t *info){
+  u32 u32_block_start = (u32)(block_start);
+  u32 schunk_index = (u32_block_start - (u32)(heap->start))/(heap->schunk_size);
+  info->schunk_start = (void *)(schunk_index * (heap->schunk_size) + (heap->start));
+
+  u32 bchunks_start = (u32)(info->schunk_start) + heap->schunk_metadata_size;
+  u32 bchunk_index = (u32_block_start - bchunks_start)/(heap->bchunk_size);
+  info->bchunk_start = (void *)(bchunk_index * (heap->bchunk_size) + bchunks_start);
+
+  u32 blocks_start = (u32)(info->bchunk_start) + heap->bchunk_metadata_size;
+  u32 block_index = (u32_block_start - blocks_start)/(heap->block_size);
+  info->block_desc = (block_descriptor_t *)(info->bchunk_start + block_index*sizeof(block_descriptor_t));
+
+  u32 slab_index = bchunk_index * (heap->slabs_per_bchunk) + (heap->slab_size) * ((u32_block_start - blocks_start)/(heap->slab_size));
+  info->slab_desc = (slab_descriptor_t *)(info->schunk_start + sizeof(slab_descriptor_t)*slab_index);
+
+  return;
+}
+</code>
+
+<p>
+HEAP: 
+</p>
+
+<code>
+typedef struct kheap{
+  u32 block_size;
+  u32 slab_size;
+  u32 blocks_per_slab;
+  u32 max_size;
+  u32 alignment;
+  void *(*constructor)(void *);
+  void *(*destructor)(void *);
+  void *start;
+  void *end;
+  block_descriptor_t *first_free;
+  block_descriptor_t *last_free;
+  slab_descriptor_t *first_free_slab;
+  slab_descriptor_t *last_free_slab;
+  u32 slabs_per_bchunk;
+  u32 bchunks_per_schunk;
+  u32 bchunk_metadata_size;
+  u32 schunk_metadata_size;
+  u32 effective_block_size;
+  u32 bchunk_size;
+  u32 schunk_size;
+} kheap_t;
+</code>
+
+<p>
+All the information that we need to keep track of all the above (e.g. manage
+freelists and so on) is here, as well as some convenient numbers that we could
+calculate on the fly, but that are more convenient stored somewhere, like
+effective_block_size or slabs_per_bchunk (which really gives rise to very
+little fruther overhead, comparatively, as there are typically not many heaps).
+</p>
+
+<p>
+The procedures we can run on a heap are: 
+</p>
+
+<p>
+CREATE: 
+</p>
+
+<p>
+Fill out the heap struct, precomputing all fixed values.  
+</p>
+
+<p>
+ALLOCATE: 
+</p>
+
+<p>
+Take the first free block off the freelist, updating linkage
+Update the refcount of the corresponding slab, and, if needed, take that slab
+off the slab freelist, and then return the start of the block.  
+</p>
+
+<p>
+FREE: 
+</p>
+
+<p>
+Find the descriptor of the given block using get_block_info and add it to the
+freelist, updating linkage.  Then update the corresponding slab's refcount and
+add it (updating linkage) to the slab freelist if needed.  
+</p>
+
+<p>
+EXPAND: 
+</p>
+
+<p>
+Add a new slab to the heap.  This will extend the end of the heap by
+heap->slab_size unless we are at a BCHUNK or an SCHUNK boundary.  In the case
+of being at an SCHUNK boundary, we will also need to allocate space for a new
+sked of metadata for both a new SCHUNK and a new BCHUNK, whereas if we are
+only at a BCHUNK boundary, we will need to allocate space for a new blob of
+block metadata only.
+</p>
+
+<p>
+Then, having a new slab, fill out its start descriptor, set its refcount to
+zero, and add it to the slab freelist, updating linkage.  
+</p>
+
+<p>
+This slab has lots of new free blocks, each of which needs its start pointer
+fixed, slab descriptor pointer pointing back to the descriptor we were dealing
+with above, and to be added to the block freelist, updating linkages
+appropriately.  
+</p>
+
+<p>
+CONTRACT: 
+</p>
+
+<p>
+Free a slab in physical memory.  This is the tricky bit: If we have freed all
+the slabs in a BCHUNK, it would be nice to be able to free the metadata as
+well and actually lose that part of the heap altogether (though it is worth
+noting that even without this, we are already doing better than the standard
+malloc, which doesn't contract at all).  To do this, it may be possible to
+maintain block freelists on a BCHUNK basis, (and slab freelists on an SCHUNK
+basis), but this makes the arithmetic for get_block_info again a bit more
+complicated, so we'll put off implementing this particular idea until later.
+If we did this, however, we would be able to free entire BCHUNKS and, if it
+came to that, entire SCHUNKS.  
+</p>
+
+<p>
+That aside, this is a rather simple operation, looking at the first slab on
+the slab freelist and giving the corresponding pages back to the physmem
+allocator, keeping all the metadata so that if there is an allocation attempt
+that tries to get a freed page, the page-fault handler can bring the slab back
+into play with nothing lost, transparently (save for a small delay, as
+usual).  
+</p>
+
+<p>
+025659
+</p>
+
+</text>
+</post>

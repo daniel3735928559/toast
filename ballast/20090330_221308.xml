@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="I might actually be that stupid" date="20090330:221308">
+<tag name="bootloader" />
+<tag name="higherhalf" />
+<text>
+
+<p>
+There is a naive approach to higher-halfizing, that, while I thought of at the
+outset, might just work verbatim.  The method there would be to have stage1
+load everything to RAM as before, including a stage2 as in the rather
+complicated plan described above, but then rather than thinking about what
+needs to be mapped where, just have the kernel/ramdisk/whatever loaded at
+0x100000 by stage1, go into protected mode with a GDT and whatnot, and then
+ID-map the first huge and translate-map the kernel stuff to 0xC0100000, jump
+there and away you go.
+</p>
+
+<p>
+Sounds nice and all, but the problem I perceived as eliminating this as a
+viable option was that 
+1. You'd still rely on structures from inside the low memory, which causes
+   problems if any hardware is mapped there<br />
+2. You'd have the page-tables both tortuously set up manually to comply with
+   the structs they'll be stored in during the C code bits and sitting (again)
+   in low memory, possibly causing unknown problems.  <br />
+</p>
+
+<p>
+However, we can just re-setup the page-tables and the GDT when we jump
+upstairs and re-load them all and be perfectly happy.  What's more, we can
+wait until we get upstairs to set up the IDT/ISRs at all, so after a little
+bit of setup, we'll be free of the downstairs constructions completely.
+Hurrah.  
+</p>
+
+<p>
+Let's have a go at that through the night and see where we are at the end of
+it.  After that, we can get to testing ramdisk code and writing at least
+syscall code, leaving little else to be done.  
+</p>
+
+<p>
+Lez go.  
+</p>
+
+<p>
+225421
+</p>
+
+</text>
+</post>

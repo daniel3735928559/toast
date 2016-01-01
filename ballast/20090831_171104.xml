@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Ramdisk Insanity" date="20090831:171104">
+<tag name="debug" />
+<tag name="initrd" />
+<text>
+
+<p>
+When I said earlier that the loading from floppy code worked fine, I meant
+that it caused no faults and everything else worked as normal after inserting
+it, and not that I'd actually tested that the ramdisk was actually in place.
+And in fact, looking with xp/10 0x20000 in the QEMU monitor (Ctrl+Alt+2 when
+in QEMU), we got all zeros.  Actually, this was discovered last night, and
+lots of fiddling with placement and whatnot didn't seem to fix it, so I went
+to sleep rather annoyed.  
+</p>
+
+<p>
+But today I realized that the make script would place the initrd.img at the
+end of kernel.img, and because I presently just have a silly little 106-byte
+test image in there, the final sector of the image wasn't filled.  And the
+emulator will therefore not be able to read the final sector, (as part of it
+extends to where the disk doesn't exist).  
+</p>
+
+<p>
+Zero-padding the image remedies this just fine, and now we can see the image
+as expected.  Whew.  
+</p>
+
+<p>
+171656
+</p>
+
+</text>
+</post>

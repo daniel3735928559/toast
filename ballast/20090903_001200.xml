@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="More on the GPF" date="20090903:001200">
+<tag name="debug" />
+<tag name="userland" />
+<text>
+
+<p>
+Inserting further at the start of the interrupt handler: 
+  print_hex_32(regs.eip);
+</p>
+
+<p>
+gives the output 0xC00033B2.  Connecting again with gdb, we see: 
+</p>
+
+<code>
+(gdb) disassemble 0xc00033b2 0xc00033b6
+Dump of assembler code from 0xc00033b2 to 0xc00033b6:
+0xc00033b2:     int    $0x22
+0xc00033b4:     leave
+0xc00033b5:     ret
+End of assembler dump.
+</code>
+
+<p>
+So it is indeed the interrupt that causes this.  
+</p>
+
+<p>
+...
+</p>
+
+<p>
+Wow.  I am an idiot.  The IDT has a field for specifying DPL that I left as 0
+(for int 0x22) when it should have been 3.  Doink.
+</p>
+
+<p>
+We now have usermode.  
+</p>
+
+<p>
+023144
+</p>
+
+</text>
+</post>

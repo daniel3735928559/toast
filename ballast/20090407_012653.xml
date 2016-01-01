@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Kernel Struct Logic" date="20090407:012653">
+<tag name="map" />
+<tag name="paging" />
+<text>
+
+<p>
+The kernel first has its physmem manager with pre-allocated imap, and then
+it's space manager (for structures) with pre-allocated imap.  
+</p>
+
+<p>
+This seems to give rise to something of a chicken-and-egg problem though--we
+need to map the kernel directory somewhere, yet we need the kernel directory
+to map anything anywhere.  
+</p>
+
+<p>
+The obvious solution is to stick the kernel directory just anywhere (well,
+somewhere specific) in kernel-land and then to go from there.  Maybe it's
+best, maybe not, but it's what we'll do.  The space 0xC0000000+EOK to
+0xC1000000 will serve this purpose (provided EOK will always stay below
+0x1000000, but I very much suspect this to be the case).  
+</p>
+
+<p>
+Then, we'll need an imap for 0x1000-byte blocks in the area
+0xC1000000-0xD8000000 and another for 0x4000-byte blocks in the area
+0xD8000000-0xF0000000.  Then, we'll need arrays for the various structures.
+These can either be given as linked-lists of the 0x1000-byte blocks or by
+fixed-size arrays in the kernel's space (0xC0000000-0xC1000000).  The latter
+will probably be the final design, but we'll stick with the former for now.  
+</p>
+
+<p>
+Then the kernel API will essentially be make_node, dump_node, make_connection,
+dump_connection, so we'd write these next, and this is where things get
+hairy.  
+</p>
+
+<p>
+074747
+</p>
+
+</text>
+</post>

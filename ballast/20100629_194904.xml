@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Multitasking!" date="20100629:194904">
+<tag name="tasking" />
+<text>
+<p>
+Now we review the plan for implementing multitasking.  
+</p>
+
+<p>
+We essentially need four functions: 
+</p>
+
+<p>
+init_tasking()
+switch_node(node_t *target_node)
+load_node()
+dump_node(node_t *to_dump)
+</p>
+
+<p>
+init_tasking: 
+</p>
+
+<p>
+We have heaps (as discussed before) for four different structures: 
+</p>
+
+<p>
+-stacks (which will officially be in the kernel's band of memory but whose
+individual pages will likely be assigned as userspace)
+-pagedirs
+-pagetables
+-nodes
+</p>
+
+<p>
+So the init_tasking function will simply initialize these heaps and be done.  
+</p>
+
+<p>
+dump_node: 
+</p>
+
+<p>
+The dump_node function is rather simple, as all it needs do (at the
+moment) is to free the node's entry from the node heap (as well as all
+its pagedirs/pagetables/stacks from the appropriate other heaps).
+When we have connections floating around this will also need to clean
+these up.
+</p>
+
+<p>
+load_node: 
+</p>
+
+<p>
+This will only need to allocate space for a node, take a pagedir (with the
+kernel's bit copied in), get some pagetables and copy in to the appropriate
+slot the executable, set eip as needed, and add to the queue of ready tasks.
+</p>
+
+<p>
+switch_node: 
+</p>
+
+<p>
+This is a bit tricky.  We'll give a detailed outline of this later.  
+</p>
+
+30:165517
+</text>
+</post>

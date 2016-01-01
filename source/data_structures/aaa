@@ -1,0 +1,823 @@
+# 1 "../kernel.c"
+# 1 "<built-in>"
+# 1 "<command-line>"
+# 1 "../kernel.c"
+# 1 "../stuff.h" 1
+
+
+typedef unsigned int u32;
+typedef int s32;
+typedef unsigned short u16;
+typedef short s16;
+typedef unsigned char u8;
+typedef char s8;
+
+typedef struct registers
+{
+ u32 ds;
+ u32 edi, esi, ebp, esp, ebx, edx, ecx, eax;
+ u32 int_no, err_code;
+ u32 eip, cs, eflags, useresp, ss;
+} registers_t;
+
+
+void outb(u16 port, u8 value)
+{
+ asm volatile("outb %1, %0" : : "dN" (port), "a" (value));
+}
+
+u8 inb(u16 port)
+{
+ u8 ret;
+ asm volatile("inb %1, %0" : "=a" (ret) : "dN" (port));
+ return ret;
+}
+
+u16 inw(u16 port)
+{
+ u16 ret;
+ asm volatile("inw %1, %0" : "=a" (ret) : "dN" (port));
+ return ret;
+}
+
+u32 EOK = 0x20000;
+
+u32 kmalloc(u32 size)
+{
+ u32 ret = EOK;
+ EOK += size;
+ return ret;
+}
+
+u32 kmalloc_a(u32 size)
+{
+ if(EOK & 0xfffff000)
+  EOK = (EOK & 0xfffff000) + 0x1000;
+
+ u32 ret = EOK;
+ EOK += size;
+ return ret;
+}
+
+u32 kmalloc_ap(u32 size, u32 *phys)
+{
+ if(EOK & 0xfffff000)
+  EOK = (EOK & 0xfffff000) + 0x1000;
+ *phys = EOK;
+ u32 ret = EOK;
+ EOK += size;
+ return ret;
+}
+# 2 "../kernel.c" 2
+# 1 "../datastr.c" 1
+# 1 "../data_structures/util.c" 1
+# 16 "../data_structures/util.c"
+u8 get_first_set_alt(u32 v)
+{
+ if(v == 0){ return -1; }
+ u8 MultiplyDeBruijnBitPosition[32] =
+ {
+  0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
+  31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
+ };
+
+ v |= v >> 1;
+ v |= v >> 2;
+ v |= v >> 4;
+ v |= v >> 8;
+ v |= v >> 16;
+ v = (v >> 1) + 1;
+
+ return MultiplyDeBruijnBitPosition[(v * 0x077CB531UL) >> 27];
+}
+
+u8 get_first_set(u32 x)
+{
+ if(x == 0){ return -1; }
+ x = (x & -x);
+
+ u8 j = 0;
+
+ while(x != 1)
+ {
+  x = x >> 1;
+  j++;
+ }
+ return j;
+}
+# 71 "../data_structures/util.c"
+void setm(u32 *start, u32 size, u32 val)
+{
+ u32 i;
+ for(i = 0; i < size; i += 1)
+ {
+  *(start + i) = val;
+ }
+}
+# 2 "../datastr.c" 2
+# 1 "../data_structures/bitmap.c" 1
+typedef struct
+{
+ u32 size;
+ u32 *bits;
+} bitmap_t;
+
+bitmap_t *bitmap_create(u32 entries)
+{
+ bitmap_t *b = (bitmap_t *)kmalloc(sizeof(bitmap_t));
+ b->size = entries/32;
+ b->bits = (u32 *)kmalloc(b->size);
+ setm((u32 *)(b->bits), b->size, 0);
+ return b;
+}
+
+u32 frame_bitmap_entry(u32 frame_address)
+{
+ return frame_address/0x1000;
+}
+
+void bitmap_set(bitmap_t *bmap, u32 entry)
+{
+ *((bmap->bits)+entry/32) |= (0x1 << (entry % 32));
+}
+
+u32 bitmap_get_context(bitmap_t *bmap, u32 entry)
+{
+ return *(bmap->bits + entry/32);
+}
+
+void bitmap_clear(bitmap_t *bmap, u32 entry)
+{
+ *((bmap->bits)+entry/32) &= ~(0x1 << (entry % 32));
+}
+
+u8 bitmap_test(bitmap_t *bmap, u32 entry)
+{
+ if(entry > (bmap->size)*8)
+ return ((*((bmap->bits)+entry/32) & 0x1 << (entry % 32)) >> (entry % 32));
+}
+
+u32 get_first_free(bitmap_t *bmap)
+{
+ u32 i = 0;
+ for(i = 0; i < bmap->size; i++)
+ {
+  u32 x = *(bmap->bits + i*sizeof(u32));
+  if(x != 0xFFFFFFFF)
+  {
+   return 8*i + get_first_set(~x);
+  }
+ }
+ return -1;
+}
+# 3 "../datastr.c" 2
+# 1 "../data_structures/stack.c" 1
+typedef struct
+{
+ u32 max;
+ u32 *base;
+ u32 *top;
+} stack_t;
+
+int stack_push(stack_t *s, u32 x)
+{
+ if(s->top - s->base >= s->max)
+ {
+  return 1;
+ }
+ *(++s->top) = x;
+ return 0;
+}
+u32 stack_pop(stack_t *s)
+{
+ if(s->top == s->base)
+ {
+  return;
+ }
+ s->top -= 1;
+ u32 x = *(s->top);
+ return x;
+}
+u32 stack_peek(stack_t *s)
+{
+ return *(s->top);
+}
+stack_t *stack_create(u32 m)
+{
+ stack_t *s = (stack_t *)kmalloc(sizeof(stack_t));
+ s->max = m;
+ s->base = (u32 *)kmalloc(m);
+ s->top = s->base - 1;
+ return s;
+}
+# 4 "../datastr.c" 2
+# 1 "../data_structures/imap.c" 1
+typedef struct
+{
+ bitmap_t *bitmap;
+ stack_t *stack;
+} imap_t;
+
+imap_t *imap_create(u32 size)
+{
+ imap_t *imap = (imap_t *)kmalloc(sizeof(imap_t));
+ imap->bitmap = bitmap_create(size*8);
+ imap->stack = stack_create(size);
+ u32 i;
+ for(i = 0; i < size; i++)
+ {
+  stack_push(imap->stack, size - 1 - i);
+ }
+ return imap;
+}
+
+u32 imap_set_next(imap_t *imap)
+{
+ u32 index = stack_peek(imap->stack)*32;
+ if(index == -1){ return -1; }
+ u32 offset = get_first_set(~(bitmap_get_context(imap->bitmap, index)));
+ u32 entry = index + offset;
+ bitmap_set(imap->bitmap, entry);
+ if(bitmap_get_context(imap->bitmap, entry) == 0xFFFFFFFF)
+ {
+  stack_pop(imap->stack);
+ }
+ return entry;
+}
+
+void imap_clear(imap_t *imap, u32 entry)
+{
+ u32 x = bitmap_get_context(imap->bitmap, entry);
+ if(x == 0xFFFFFFFF)
+ {
+  stack_push(imap->stack, entry/32);
+ }
+ bitmap_clear(imap->bitmap, entry);
+}
+# 4 "../datastr.c" 2
+# 3 "../kernel.c" 2
+# 1 "../monitor.c" 1
+# 1 "../font.h" 1
+u32 fwidth = 8;
+u32 fheight = 8;
+
+char font[128][8] = {0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+85,170,85,170,85,170,85,170,
+0,0,0,0,0,0,0,0,
+170,85,170,85,170,85,170,85,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,
+0,24,24,24,24,0,24,0,
+0,54,54,54,0,0,0,0,
+0,36,126,36,36,126,36,0,
+24,60,90,120,28,90,62,24,
+0,34,84,40,20,42,68,0,
+0,60,66,36,58,68,58,0,
+0,12,24,48,0,0,0,0,
+16,32,64,64,64,64,32,16,
+8,4,2,2,2,2,4,8,
+16,16,124,56,68,0,0,0,
+0,24,24,126,126,24,24,0,
+0,0,0,0,0,24,48,96,
+0,0,0,126,126,0,0,0,
+0,0,0,0,0,48,48,0,
+0,2,4,8,16,32,64,0,
+0,60,70,74,82,98,60,0,
+0,24,56,8,8,8,126,0,
+0,60,66,4,8,16,126,0,
+0,60,66,24,4,66,60,0,
+0,12,20,36,126,4,4,0,
+0,126,64,124,2,2,124,0,
+0,60,64,120,68,68,56,0,
+0,126,4,8,124,32,64,0,
+0,60,66,66,60,66,60,0,
+0,60,66,66,62,2,60,0,
+0,24,24,0,0,24,24,0,
+0,24,24,0,0,24,48,96,
+0,0,16,32,64,32,16,0,
+0,0,0,126,0,126,0,0,
+0,0,8,4,2,4,8,0,
+0,60,66,4,8,16,0,16,
+0,60,76,84,94,64,60,0,
+0,24,60,102,126,102,102,0,
+0,124,102,124,102,102,124,0,
+0,62,96,96,96,96,62,0,
+0,124,102,102,102,102,124,0,
+0,126,96,126,126,96,126,0,
+0,126,96,126,96,96,96,0,
+0,62,96,96,110,102,60,0,
+0,102,102,126,126,102,102,0,
+0,126,24,24,24,24,126,0,
+0,126,24,24,24,88,120,0,
+0,102,108,120,120,108,102,0,
+0,96,96,96,96,96,126,0,
+0,66,102,126,126,102,102,0,
+0,66,98,82,74,70,66,0,
+0,60,102,102,102,102,60,0,
+0,124,102,102,124,96,96,0,
+0,60,102,102,102,60,14,0,
+0,124,102,102,124,108,102,0,
+0,62,96,56,28,6,124,0,
+0,126,126,24,24,24,24,0,
+0,102,102,102,102,102,60,0,
+0,102,102,102,102,36,24,0,
+0,66,66,66,90,90,60,0,
+0,66,36,24,24,36,66,0,
+0,66,66,36,24,24,24,0,
+0,126,12,24,60,48,126,0,
+112,64,64,64,64,64,64,112,
+0,64,32,16,8,4,2,0,
+
+14,2,2,2,2,2,2,14,
+24,36,66,0,0,0,0,0,
+0,0,0,0,0,0,126,0,
+96,48,24,0,0,0,0,0,
+0,0,60,66,62,66,62,0,
+0,64,64,124,66,66,124,0,
+0,0,0,62,64,64,62,0,
+0,2,2,62,66,66,62,0,
+0,0,60,66,124,64,60,0,
+0,8,20,16,56,16,16,0,
+0,0,60,68,60,4,68,56,
+0,64,64,64,124,66,66,0,
+0,0,24,0,24,24,24,0,
+0,0,8,0,8,8,72,48,
+0,32,32,40,48,40,36,0,
+0,56,24,24,24,24,28,0,
+0,0,0,60,90,90,90,0,
+0,0,0,120,68,68,68,0,
+0,0,60,66,66,66,60,0,
+0,0,60,66,66,124,64,64,
+0,0,60,66,66,62,2,3,
+0,0,64,126,64,64,64,0,
+0,0,62,64,60,2,124,0,
+0,16,16,16,56,16,20,8,
+0,0,66,66,66,66,60,0,
+0,0,0,66,66,36,24,0,
+0,0,0,90,90,90,60,0,
+0,0,0,100,24,24,38,0,
+0,0,66,66,62,2,66,60,
+0,0,0,60,8,16,60,0,
+8,16,16,32,16,16,8,0,
+24,24,24,24,24,24,24,24,
+16,8,8,4,8,8,16,0,
+0,0,50,126,204,0,0,0,
+0,0,0,0,0,0,0,0,
+};
+# 2 "../monitor.c" 2
+
+u32 cursor_x;
+u32 cursor_y;
+
+struct pixel
+{
+ u8 blue;
+ u8 green;
+ u8 red;
+} __attribute__((packed));
+
+typedef struct pixel pixel_t;
+
+pixel_t *videoram;
+u32 width;
+u32 height;
+
+void monitor_init(pixel_t *vidstart)
+{
+ videoram = vidstart;
+ width = 800;
+ height = 600;
+ cursor_x = 0;
+ cursor_y = 0;
+}
+
+void plot_pixel(u32 x, u32 y, pixel_t px)
+{
+ pixel_t *p = videoram + (y*width + x);
+ p->red = px.red;
+ p->green = px.green;
+ p->blue = px.blue;
+}
+
+void put_bmp(u8 *bmp, u32 w, u32 h, u32 x, u32 y, u8 r, u8 g, u8 b)
+{
+ u32 bit = 0;
+ pixel_t px;
+ while(bit < w*h)
+ {
+  u32 idx = bit / 8;
+  u32 off = (8 - (bit % 8)) % 8;
+  if(bmp[idx] & (1 << off))
+  {
+   px.red = r;
+   px.green = g;
+   px.blue = b;
+  }
+  else
+  {
+   px.red = 0;
+   px.green = 0;
+   px.blue = 0;
+  }
+  u32 x_off = bit % w;
+  u32 y_off = bit / h;
+  plot_pixel(x + x_off, y + y_off, px);
+  bit++;
+ }
+}
+
+void cls()
+{
+ pixel_t *px = videoram;
+ while(px < videoram + width * height)
+ {
+  px->red = px->green = px->blue = 0x00000000;
+  px += 1;
+ }
+ cursor_x = 0;
+ cursor_y = 0;
+}
+
+void newline()
+{
+ cursor_x = 0;
+ cursor_y += fheight;
+}
+
+void scroll()
+{
+ return;
+}
+
+void putch_rgb(char c, u8 r, u8 g, u8 b)
+{
+ if(c == '\n')
+  newline();
+ else if(c == '\r')
+  cursor_x = 0;
+ else if(c == 8 && cursor_x)
+  cursor_x -= fwidth;
+ else if(c == 9)
+  cursor_x = (cursor_x + 8) - ((cursor_x + 8) % 8);
+ else if(c >= 32)
+ {
+  put_bmp(font[c], fwidth, fheight, cursor_x, cursor_y, r, g, b);
+  cursor_x += fwidth;
+  if(cursor_x >= width)
+   newline();
+ }
+ if(cursor_y + fheight >= height)
+  scroll();
+}
+
+void putch(char c)
+{
+ putch_rgb(c, 0xff, 0xff, 0xff);
+}
+
+
+
+void print_hex_32(u32 x)
+{
+ char output[8];
+ u8 i, len = 0;
+ for(i = 0; i < 8; i++)
+ {
+  u8 d = x & 0x0f;
+  if(d)
+   len = i;
+  if(d > 9)
+   output[7 - i] = (55 + d);
+  else
+   output[7 - i] = (48 + d);
+  x = x >> 4;
+ }
+ for(i = 7-len; i < 8; i++)
+  putch(output[i]);
+}
+
+void print_dec_32(u32 x)
+{
+ char output[10];
+ u8 i = 0;
+ while(x)
+ {
+  output[i] = (48 + (x % 10));
+  i++;
+  x /= 10;
+ }
+ while(i > 0)
+  putch(output[--i]);
+}
+
+void print_bin_32(u32 x)
+{
+ char output[32];
+ u8 len = 0;
+ u8 i = 0;
+ u32 a = 1;
+ while(a)
+ {
+  if(x & a)
+  {
+   output[i] = '1';
+   len = i+1;
+  }
+  else
+   output[i] = '0';
+  a = a << 1;
+  i++;
+ }
+ while(len)
+  putch(output[--len]);
+}
+
+void prints(char *s)
+{
+ u32 i = 0;
+ while(s[i])
+  putch(s[i++]);
+}
+
+void bitmap_print(bitmap_t *bmap)
+{
+ u32 *i;
+ for(i = bmap->bits; i < bmap->bits + bmap->size; i += 1)
+ {
+  print_bin_32(*i);
+ }
+ putch('\n');
+}
+# 4 "../kernel.c" 2
+# 1 "../paging.c" 1
+typedef struct
+{
+ u32 present:1;
+ u32 rw:1;
+ u32 user:1;
+ u32 accessed:1;
+ u32 dirty:1;
+ u32 unused:7;
+ u32 frame:20;
+} page_t;
+
+typedef struct
+{
+ page_t pages[1024];
+} page_table_t;
+
+typedef struct
+{
+ page_table_t *tables[1024];
+ u32 table_phys_addresses[1024];
+ u32 physical_address;
+} pagedir_t;
+
+imap_t *frames_map;
+pagedir_t *kernel_dir;
+pagedir_t *current_dir;
+
+void get_a_frame(page_t *page, u8 mode, u8 rw)
+{
+ if(page->frame != 0)
+ {
+  return;
+ }
+ else
+ {
+  u32 i = imap_set_next(frames_map);
+  if(i == -1)
+  {
+   return;
+  }
+  page->present = 1;
+  page->rw = rw?1:0;
+  page->user = mode?1:0;
+  page->frame = i;
+ }
+}
+
+void get_specific_frame(page_t *page, u32 frame_addr, u8 mode, u8 rw)
+{
+ if(page->frame != 0)
+ {
+  return;
+ }
+ else
+ {
+  bitmap->set(frames_map->bitmap, (frame_addr >> 12));
+  if(i == -1)
+  {
+   return;
+  }
+  page->present = 1;
+  page->rw = rw?1:0;
+  page->user = mode?1:0;
+  page->frame = (frame_addr >> 12);
+ }
+}
+
+void paging_idmap(u32 *start, u32 size, u8 mode, u8 rw)
+{
+ u32 i;
+ for(i = start; i < start + size; i += 0x1000)
+  page_t *p = get_specific_frame(get_page(i, 1, kernel_dir), i/0x1000, mode, rw);
+}
+
+void release_frame(page_t *page)
+{
+ if(!(page->frame))
+ {
+  return;
+ }
+ else
+ {
+  imap_clear(frames_map, page->frame);
+  page->frame = 0;
+ }
+}
+
+void switch_pagedir(pagedir_t *dir)
+{
+ current_dir = dir;
+ asm volatile("mov %0, %%cr3":: "r"(&dir->table_phys_addresses));
+ u32 cr0;
+ asm volatile("mov %%cr0, %0": "=r"(cr0));
+ cr0 |= 0x80000000;
+ asm volatile("mov %0, %%cr0":: "r"(cr0));
+}
+
+page_t *get_page(u32 address, u8 make, pagedir_t *dir)
+{
+ address /= 0x1000;
+ u32 table_index = address / 1024;
+ if (dir->tables[table_index])
+ {
+  return &dir->tables[table_index]->pages[address%1024];
+ }
+ else if(make)
+ {
+  u32 tmp;
+  dir->tables[table_index] = (page_table_t*)kmalloc_ap(sizeof(page_table_t), &tmp);
+  setm((u32 *)dir->tables[table_index], 0, 0x1000);
+  dir->table_phys_addresses[table_index] = tmp | 0x7;
+  return &dir->tables[table_index]->pages[address%1024];
+ }
+ else
+ {
+  return 0;
+ }
+}
+
+void paging_debug_print()
+{
+ for(i = 0; i <= (EOK / 0x1000); i++)
+ {
+  u32 tab = i/1024;
+  u32 pag = i % 1024;
+  prints("t=");print_hex_32(tab);prints(", p=");print_hex_32(pag);prints(": ");
+  print_hex_32(kernel_dir->table_phys_addresses[tab]);
+  prints("=");
+  print_hex_32((u32)(kernel_dir->tables[tab]));
+  prints(" ");
+  print_hex_32( ((page_table_t *)((kernel_dir->table_phys_addresses[tab]) - 7)) -> pages[pag].frame);
+  prints("=");
+  print_hex_32(kernel_dir->tables[tab]->pages[pag].frame);
+  prints("=");
+  print_hex_32(*((u32 *)(&(kernel_dir->tables[tab]->pages[pag]))));
+  prints("; ");
+
+ }
+
+
+
+
+}
+
+void paging_init()
+{
+ u32 mem_size = 0x10000000;
+ u32 num_frames = mem_size/0x1000;
+ frames_map = imap_create(num_frames);
+ setm((u32 *)(frames_map->bitmap->bits), 0, num_frames);\f
+
+ kernel_dir = (pagedir_t *)kmalloc_a(sizeof(pagedir_t));
+ setm((u32 *)kernel_dir, 0, sizeof(pagedir_t));
+ current_dir = kernel_dir;
+
+ paging_idmap((u32)(videoram), height*width*3, 1, 0);
+ paging_idmap(0, 0x100*EOK, 1, 0);
+ imap_stack_reset(frames_map);
+ switch_pagedir(kernel_dir);
+}
+# 5 "../kernel.c" 2
+# 1 "../keybd/keyboard.c" 1
+# 1 "../keybd/scancodes.h" 1
+# 33 "../keybd/scancodes.h"
+s8 scancodes[84] = {
+0,0,'1','2','3','4','5','6','7','8','9','0','-','=',0x8,
+0x9,'q','w','e','r','t','y','u','i','o','p','[',']',-1,-2,'a','s',
+'d','f','g','h','j','k','l',';','\'','`',-3,'\\','z','x','c','v',
+'b','n','m',',','.','/',-4,'*',-5,' ',-6,0,0,0,0,0,
+0,0,0,0,0,0,0,-7,-8,-14,'-',-11,'5',-10,'+',-13,
+-9,-15,-16,-17};
+
+s8 scancodes_shift[84] = {
+0,0,'!','@','#','$','%','^','&','*','(',')','_','+',0x8,
+0x9,'Q','W','E','R','T','Y','U','I','O','P','{','}',-1,-2,'A','S',
+'D','F','G','H','J','K','L',':','\"','~',-3,'|','Z','X','C','V',
+'B','N','M','<','>','?',-4,'*',-5,' ',-6,0,0,0,0,0,
+0,0,0,0,0,0,0,-7,-8,-14,'-',-11,'5',-10,'+',-13,
+-9,-15,-16,-17};
+# 2 "../keybd/keyboard.c" 2
+
+u8 shift_down = 0;
+
+void keyboard_handler()
+{
+ u8 sc = inb(0x60);
+ if(sc)
+ {
+  if(sc & (0x80))
+  {
+   sc &= 0x7f;
+   if(scancodes[sc] == -3 || scancodes[sc] == -4)
+    shift_down = 0;
+  }
+  else
+  {
+   if(scancodes[sc] == -3 || scancodes[sc] == -4)
+   {
+    shift_down = 1;
+   }
+   else
+   {
+    s8 input;
+    input = (shift_down ? scancodes_shift[sc] : scancodes[sc]);
+    if(input > 0)
+     putch(input);
+   }
+  }
+ }
+ outb(0x20, 0x20);
+}
+# 6 "../kernel.c" 2
+
+void page_fault(registers_t regs)
+{
+ prints("PAGE FAULT: ");
+ u32 faulting_address;
+ asm volatile("mov %%cr2, %0" : "=r" (faulting_address));
+ prints("at 0x");
+ print_hex_32(faulting_address);
+ prints(" with error code ");
+ print_bin_32(regs.err_code);
+ prints("\n");
+}
+
+void isr_handler(registers_t regs)
+{
+ if(regs.int_no == 0xE)
+  page_fault(regs);
+ else if(regs.int_no == 0x21)
+  keyboard_handler();
+}
+
+void init()
+{
+ paging_init();
+ heap_init();
+ rd_init();
+
+}
+
+void kmain(u32 vidstart)
+{
+ init();
+}

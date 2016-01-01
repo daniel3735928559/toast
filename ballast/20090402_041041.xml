@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="I'm an IDIOT" date="20090402:041041">
+<tag name="paging" />
+<text>
+
+<p>
+The above analysis is correct, but to put stuff in the 0x300th entry of the
+pagedir, you DON'T use 
+</p>
+
+<code>
+mov [PD_START+0x300],stuff
+</code>
+
+<p>
+but rather you use 
+</p>
+
+<code>
+mov [PD_START+4*0x300],stuff
+</code>
+
+<p>
+Problem solved.  
+</p>
+
+<p>
+041246
+</p>
+
+</text>
+</post>

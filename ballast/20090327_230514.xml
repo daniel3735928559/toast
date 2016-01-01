@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Updates and stuff" date="20090327:230514">
+<tag name="ipc" />
+<tag name="plan" />
+<text>
+
+<p>
+RTL8029 initization routine doesn't seem to kill anything, but whether I can
+send stuff and suchlike remains untested.  
+</p>
+
+<p>
+Initrd code done and debugged (compiler-side, anyways), except I need to work
+out how to get the ramdisk actually into memory (all ways readily found online
+involve GRUB) and make sure that my rdgen makes an image that is actually
+compatable (I forget!).  I'll worry about all that in due course, but what I'd
+like to run through now is multitasking and IPC, which should be the last
+(major) kernel thing to implement before we'll get to writing a proper IPC
+protocol layer, and then proper drivers and a GUI.
+</p>
+
+<p>
+Multitasking should be set up as follows: There is a linked-list of task
+structures, each storing it's state (essentially, *all* registers) as well as
+IPC-related information (the node_t struct in the documentation--basically an
+indicator of where is it topologically (to what address space on what
+computer) and what connections it has in place.  
+</p>
+
+<p>
+The actual mechanics of task-loading and switching should really be very
+simple: For loading, an address space is created and some kind of executable
+parser runs on a designated file and sticks the appropriate bits into memory
+as appropriate and then runs the task.  For switching, all we should need to
+do is load all regs and jump to the appropriate stored eip.  
+</p>
+
+<p>
+The problem is that this deals in tasks rather than in `nodes' (which is a
+silly distinction, but I'll not quote it to downplay it in the future, as this
+would get annoying).  So in the future, some notion should be built into the
+kernel of what sort of thing it is meant to be loading into what address space
+on what computer and suchlike.  The simplest way of doing this for now might
+be to have the syscalls load(u32 nodeID), load_to(u32 nodeID, u32 loaction)
+where location defines the address space and the computer (on x86
+machines--where there are different abstractions, this may mean something else
+(although the `which computer' distinction should always be meaningful)).  
+</p>
+
+<p>
+So we'll implement this for now, get the ramdisk running and stick in it some
+assembly programs that syscall to print out things.  Oh yeah.  Need to get
+syscalls working too.  Pretty important, that.  Kind of obnoxious how these
+last three things all need to be at least somewhat functional before they can
+be properly tested.  At least before multitasking can be properly tested.  
+</p>
+
+<p>
+Oh well.  The day they are done will be a good day.  
+</p>
+
+<p>
+Out.  
+</p>
+
+<p>
+233209
+</p>
+
+</text>
+</post>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="General thoughts" date="20090401:015050">
+<tag name="ipc" />
+<tag name="plan" />
+<text>
+
+<p>
+A more big-picture thing now: What we want at the end is for programs to have
+their interfaces entirely defined programmatically.  That is, for example,
+where programs would ordinarily have a GUI element--a slider, say--that sets
+some variable, it'll now have a means of doing so entirely via IPC, which can
+be given a layer in the form of a GUI or a shell interface or whatever.  The
+shell interface element of this would be reasonably useful, so as long as this
+is implemented intelligently it is necessarily strictly better.  
+</p>
+
+<p>
+015439
+</p>
+
+</text>
+</post>

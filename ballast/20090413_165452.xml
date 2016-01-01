@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Reboot" date="20090413:165452">
+<tag name="malloc" />
+<tag name="plan" />
+<tag name="ipc" />
+<text>
+
+<p>
+After a CATAM break, we're back.  To finish the kernel there remain six things
+to do: 
+</p>
+
+<code>
+   1. Initize page tables
+   2. Write kalloc for kernel structures
+   3. Ramdisk
+   4. Multitasking
+   5. IPC
+   6. Setup syscalls
+</code>
+
+<p>
+The code for 1, 3, 4, and 6 already exists (just neads tweaking/testing), so
+we plan for 2 and 5 now, which have been discussed in varying levels of detail
+already, but we consolidate here, and refresh the ideas a little.  
+</p>
+
+<p>
+2: 
+</p>
+
+<p>
+API: 
+</p>
+
+<code>
+alloc_node: creates pagedir (in 0xC1000000-0xD8000000), kernel stack (in
+0xD8000000-0xF00000000), and fills node struct with appropriate values.  
+
+dump_node: removes associated pagedir and kernel stack as well as all
+associated connections/endpoints.  
+
+alloc_connection: 
+
+...
+</code>
+
+<p>
+5: 
+</p>
+
+<code>
+connect(): allocates connection and returns its ID (in this implementation, its
+	 index in the array) or an error code if there was a permissions problem or
+	 other failure.  This is exposed through a system call.  
+
+send: 
+
+...
+</code>
+
+<p>
+How to do some things with connections: 
+</p>
+
+<p>
+If I want to set up an `event-driven' sort of system on top of this, it's
+quite easy as the system is almost essentially event-driven at its core.  When
+you get a message, a `receive' function (registered as part of being a node)
+is called, which can parse its arguments and pass them on to the higher level
+code as a `mouse event' or `packets done sending' or whatever after some big
+switch-statement block.  
+</p>
+
+<p>
+This message handler, then, is like a super-event handler, which calls all
+higher-level event-handlers, and nothing else.  
+</p>
+
+<p>
+For example, to read a file, we can use the following pseudo-C code: 
+</p>
+
+<code>
+void main()
+{
+	a = async_read_file("blah.txt");
+	b = async_read_file("bloo.txt");
+	do_stuff();
+}
+
+void read_complete(void *data, int length, int id)
+{
+	if(id == a) display_stuff_to_screen(data);
+	else new_tab(data);
+}
+
+void recv(u32 from_ID, int argc, void **args)
+{
+	if(from_ID == fs_node &amp;&amp; args[0] == a){
+		   read_complete(args[1], args[2], a);
+	}
+}
+</code>
+
+<p>
+where the `handler' preempts the running process (but is not itself
+preemptable).  
+</p>
+
+<p>
+...
+</p>
+
+</text>
+</post>

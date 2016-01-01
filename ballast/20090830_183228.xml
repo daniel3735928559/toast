@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Allocator and Ramdisk" date="20090830:183228">
+<tag name="initrd" />
+<tag name="map" />
+<tag name="malloc" />
+<text>
+
+<p>
+We've left the allocator hanging with the stupid imap algorithm used for the
+physmem manager, as the algorithm is easily swappable later (though we do need
+to swap it eventually, as the stupid algorithm is stupid).  
+</p>
+
+<p>
+Now then, it's on to the ramdisk!  
+</p>
+
+<p>
+We can readily stick in further load-from-floppy code into stage2 (now that
+the weird `adding nops causes triple-fault' issue is gone) and this works
+fine, but we now have an issue of not knowing exactly where on the floppy to
+load from, and where into RAM to load to.  We've allocated some space at
+0x30000 onwards for kernel structures, and from 0x80000 to 0x90000 for the
+stack, and from 0x10000-0x20000 for the kernel itself.  We'll stick the
+ramdisk at 0x60000 for now and deal with it later if things are getting
+stepped on.  Note that we don't have to map it in to the page tables in
+stage2 as long as we know where is it when we get to the actual kernel.  
+</p>
+
+<p>
+We will also need to clean up this somewhat ad-hoc usage of RAM, noting that
+as we are in pmode by the time we're setting up page tables we can pretty much
+use whatever memory we like for things like the kernel structs and the stack,
+whereas the kernel and ramdisk actually need to be loaded below the 1MB
+(0x100000) mark, as they are put in place while still in 16-bit realmode.  
+</p>
+
+<p>
+But for now we heedlessly bash on, as this should be easy to remedy when it
+becomes an issue, and as everything is small at this stage we won't need to
+worry overmuch.  
+</p>
+
+<p>
+192627
+</p>
+
+</text>
+</post>

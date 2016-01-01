@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Alligator; Physmem Mgr within Vmem Mgr" date="20090922:034805">
+<tag name="map" />
+<tag name="malloc" />
+<text>
+
+<p>
+Still stuck on allocator.  There are a few issues--for instance, if we extend
+Bonwick's small-object scheme to any heap, but include slab_descriptor_t
+pointers in the block structs as well as block_descriptor_t linkage pointers,
+we get the albeit not massively unfixable problem of what to do with objects
+requiring special alignment constraints, e.g. pagedirs.  So having the block
+and slab descriptors in their own separate heaps seems useful (though one
+needs to be careful, as it turns out, for if these heaps themselves use
+external block/slab descriptor heaps, then allocating a block anywhere causes
+an allocation on the block heap, which causes an allocation on the block heap,
+etc., explaining why the optimization for small-object caches is not only
+space-saving, but is actually necessary).  
+</p>
+
+<p>
+However then, given a block, unless we want to just sort out the freelist for
+entire free slabs in idle time (in a way that is, additionally, forced to
+check the entire freelist and runs in n^2 time in its size) we need to be able
+to track down which slab it lives in (in order to adjust a bitmap entry or
+update a reference count on alloc/free operations), and in particular, to
+track down the slab descriptor.  The correct way to do this is to include the
+slab's descriptor (or a pointer thereto) in the slab itself.  We can, after a
+struggle, work out the start and end of the slab arithmetically given the
+heap's start and slab_size and block_size, but including the descriptor in the
+slab itself runs into particular problems when handling alignment-constrained
+structures like page-tables--a slab of page tables will have all but its last
+page full, with only one byte used in the final page--4095 bytes of RAM wasted
+for every such slab allocated.  
+</p>
+
+<p>
+The wastage does not appear so much when there are no alignment constraints,
+but when dealing with 2K objects, adding an extra dword increases the
+slab-size necessary to avoid wastage.  Although, when dealing with objects of
+size 2048 - sizeof(dword) we benefit, so perhaps, assuming these are equally
+likely, we should not worry about it overly much.  The only concern, then,
+happens when we have alignment constraints, and the object size divides (with
+small quotient) the page size (which is most significantly true for pagetables
+and pagedirs).  Perhaps if we just increase the slab size enough we can suck
+it up.  Alternatively, we can use a slab size of i page, but every
+4096/sizeof(dword) slabs insert a page of (slab_descriptor_t *)-type
+pointers.  Then we can still arithmetically determine the index of any block's
+slab and, dividing it by 4096/sizeof(dword) we can determine which of the
+pointer-slabs it lives in, 
+</p>
+
+<p>
+Actually, we can just have the dword represent the refcount and store no
+further metadata for the slabs, and further, we can do this for any heap.  So
+the structure of the system is as follows: Every heap will store a value for
+the max_used_slab.  Every 1024 slabs, there will be a page of refcounts for
+each of the 1024 slabs that follow.  The procedure for allocation then follows
+straightforwardly: Use the freelist to find a free block.  Determine its
+slab's location, and thus its slab's index in the array, and update the
+refcount, and update the freelist as usual.  Then, if a new slab was needed,
+check the if the slab's index is greater than the max, and if so, update the
+max.  Then, if the max is in turn newly greater than a multiple of 1024,
+allocate a further page of refcounts.  
+</p>
+
+<p>
+Indeed, we can use the same sort of thing for block descriptors.  So, for
+example, the layout in RAM would look something like: 
+</p>
+
+<code>
+             SIZES          ||    RAM    || SLABS  |BCHUNKS |SCHUNKS |
+============================||===========||========|========|========|
+ heap->slab_metadata_size   ||slab       ||        |        | SLAB   | 
+                            ||descriptors||        |        | CHUNK  |
+============================||===========||        |========|(SCHUNK)|
+ heap->block_metadata_size  ||block      ||        | BLOCK  |        |
+                            ||descriptors||        | CHUNK  |        |
+============================||===========||========|(BCHUNK)|        |
+ heap->block_size           ||block      ||  SLAB  |        |        |
+============================||===========||        |        |        |
+ heap->block_size           ||block      ||        |        |        |
+============================||===========||        |        |        |
+                            ||...        ||        |        |        |
+============================||===========||        |        |        |
+ heap->block_size           ||block      ||        |        |        |
+============================||===========||        |        |        |
+                            ||wastage    ||        |        |        |
+============================||===========||========|        |        |
+                            ||...        ||  ....  |        |        |
+                            ||...        ||(SLABS) |        |        |
+============================||===========||========|        |        |
+ heap->block_size           ||block      ||  SLAB  |        |        |
+============================||===========||        |        |        |
+ heap->block_size           ||block      ||        |        |        |
+============================||===========||        |        |        |
+                            ||...        ||        |        |        |
+============================||===========||        |        |        |
+ heap->block_size           ||block      ||        |        |        |
+============================||===========||        |        |        |
+                            ||wastage    ||        |        |        |
+============================||===========||========|========|        |
+ heap->block_metadata_size  ||block      ||        | BCHUNK |        |
+                            ||descriptors||        |        |        |
+============================||===========||========|        |        |
+ heap->block_size           ||block      ||  SLAB  |        |        |
+============================||===========||        |        |        |
+                            ||...        ||        |        |        |
+============================||===========||        |        |        |
+ heap->block_size           ||block      ||        |        |        |
+============================||===========||        |        |        |
+                            ||wastage    ||        |        |        |
+============================||===========||========|        |        |
+                            ||...        ||(SLABS) |        |        |
+                            ||...        ||        |========|        |
+                            ||...        ||        |BCHUNKS |        |
+============================||===========||========|========|        |
+ heap->block_metadata_size  ||block      ||        | BCHUNK |        |
+                            ||descriptors||        |        |        |
+============================||===========||========|        |        |
+ heap->block_size           ||block      ||  SLAB  |        |        |
+============================||===========||        |        |        |
+                            ||...        ||        |        |        |
+============================||===========||        |        |        |
+ heap->block_size           ||block      ||        |        |        |
+============================||===========||        |        |        |
+                            ||wastage    ||        |        |        |
+============================||===========||========|========|========|
+ heap->slab_metadata_size   ||slab       ||        |        | SCHUNK |
+                            ||descriptors||        |        |        |
+============================||===========||        |        |        |
+                            ||...........||        |        |        |
+                              ...........   
+</code>
+
+<p>
+In code (roughly): 
+</p>
+
+<p>
+TYPES/DEFINITIONS: 
+</p>
+
+<code>
+typedef slab_descriptor{
+   u32 refcount;
+}slab_descriptor_t;
+
+typedef block_descriptor{
+   block_descriptor_t *prev;
+   block_descriptor_t *next;
+} block_descriptor_t;
+
+typedef struct kheap{
+  u32 flags; //0:(1=Small) 1-31:RESERVED
+  u32 block_size;
+  u32 slab_size;
+  u32 max_size;
+  u32 alignment;
+  void (*constructor)(void *);
+  void (*destructor)(void *);
+  void *start;
+  void *end;
+  block_descriptor_t *first_free;
+  block_descriptor_t *last_free;
+  u32 bchunk_size;
+  u32 schunk_size;
+  u32 slabs_per_bchunk;
+  u32 effective_block_size;
+  u32 bchunks_per_schunk;
+  u32 bchunk_metadata_size;
+  u32 schunk_metadata_size;
+} kheap_t;
+
+#define PAGE_SIZE 4096
+#define SLABS_PER_SCHUNK PAGE_SIZE/sizeof(slab_descriptor_t)
+#define BLOCKS_PER_BCHUNK PAGE_SIZE/sizeof(block_descriptor_t)
+</code>
+
+<p>
+CREATE: 
+</p>
+
+<code>
+kheap_t *kheap_init(kheap_t *heap, u32 b_size, u32 s_size, u32 m_size, u32
+init_slabs, u32 align, void *constr(), void *destr(), u32 safe_offest, void
+*location){
+  if(b_size &lt; PAGE_SIZE/8){
+    heap->flags != 1;
+    heap->alloc = kheap_small_alloc(u32);
+    b_size += sizeof(block_descriptor_t *);
+  }
+  else{
+    heap->alloc = kheap_alloc(u32);
+  }
+
+  heap->block_size = b_size;
+  heap->slab_size = s_size;
+  heap->max_size = m_size;
+  heap->alignment = align;
+  heap->constructor = constr;
+  heap->destructor = destr;
+  heap->start = location;
+  heap->end = location;
+  heap->first_free = heap->get_block(0);
+  heap->last_free = heap->get_block(init_slabs*s_size/block_size);
+
+  heap->slabs_per_bchunk = BLOCKS_PER_BCHUNK / ((heap->slab_size)/(heap->block_size));
+  heap->bchunks_per_schunk = SLABS_PER_SCHUNK / heap->slabs_per_bchunk;
+  heap->bchunk_metadata_size = align_by(BLOCKS_PER_BCHUNK*sizeof(block_descriptor_t), PAGE_SIZE);
+  heap->schunk_metadata_size = align_by(SLABS_PER_SCHUNK*sizeof(slab_descriptor_t), PAGE_SIZE);
+  heap->effective_block_size = align_by(heap->block_size, heap->align);
+  heap->bchunk_size = heap->slabs_per_bchunk*(heap->slab_size) + heap->bchunk_metadata_size;
+  heap->schunk_size = SLABS_PER_SCHUNK*(heap->slab_size) + (heap->bchunk_metadata_size)*(heap->bchunks_per_schunk) + (heap->schunk_metadata_size);
+
+  kheap_expand(heap, init_slabs);
+  return heap;
+}
+</code>
+
+<p>
+ALLOC: 
+</p>
+
+<code>
+//Expand if needed
+if(heap->first_free == NULL) if(expand(heap) != 0) return NULL;
+
+//Update linkage
+block_descriptor_t *new_block = heap->first_free;
+heap->first_free = heap->first_free->next;
+heap->first_free->prev = NULL;
+
+//Update refcount
+get_slab_descriptor(new_block)->refcount++;
+
+//Return: 
+return get_block_start(new_block);
+</code>
+
+<p>
+FREE: 
+</p>
+
+<code>
+//Update linkage
+block_descriptor_t *to_free = get_block_descriptor(block_start);
+to_free->next = NULL;
+to_free->prev = heap->last_free;
+heap->last_free = to_free;
+
+//Update refcount
+(get_slab_descriptor(to_free))->refcount--;
+
+//Reclaim if wanted
+//if((get_slab_descriptor(to_free))->refcount == 0)
+   contract(to_free);
+
+return;
+</code>
+
+<p>
+</p>
+
+<p>
+EXPAND: 
+</p>
+
+<code>
+void *new_end = heap->end + heap->slab_size;
+
+//If expanding would put us over a schunk boundary, add another page of slab descriptors: 
+if((new_end - heap->start)/(heap->schunk_size) > (heap->end - heap->start)/(heap->schunk_size)){
+   new_end += heap->schunk_metadata_size + heap->bchunk_metadata_size;
+}
+else if((new_end - get_bchunks_start(new_end - heap->block_size))/(heap->bchunk_size) > (heap->end - get_bchunks_start(heap->end - heap->block_size))/(heap->bchunk_size)){
+   new_end += heap->bchunk_metadata_size;
+}
+alloc_pages_for(heap->end, new_end, 1, 1);
+heap->end = new_end;
+
+return;
+</code>
+
+<p>
+CONTRACT: 
+</p>
+
+<code>
+void *i;
+u32 j;
+
+for(i = heap->start; i &lt; heap->end; i++) 
+{
+   for(j = 0; j &lt; SLABS_PER_SCHUNK; j++)
+   {
+      slab_descriptor_t *slab_desc = (slab_descriptor_t *)i;
+      if(slab_desc->refcount == 0){
+         free_pages_through(get_slab_start(slab_desc), heap->slab_size);
+	 slab_desc->refcount == -1;
+      }
+      i += sizeof(slab_descriptor_t);
+   }
+   i += heap->schunk_size - heap->schunk_metadata_size;
+}
+</code>
+
+<p>
+AUXILIARY FUNCTIONS: 
+</p>
+
+<code>
+block_descriptor_t *get_block_descriptor(void *block_start){
+   u32 info_start = (u32)(block_start), schunk_index, schunk_start, bchunks_start, bchunk_index, bchunk_start, blocks_start;
+   get_location_info(heap, info_start, &amp;schunk_index, &amp;schunk_start, &amp;bchunks_start, &amp;bchunk_index, &amp;bchunk_start, &amp;blocks_start);
+
+   u32 block_index = (info_start - blocks_start)/(heap->block_size);
+
+   return ((block_descriptor_t *)(bchunk_start))[block_index];
+}
+
+slab_descriptor_t *get_slab_descriptor(block_descriptor_t *block_desc){
+   u32 info_start = (u32)(block_desc), schunk_index, schunk_start, bchunks_start, bchunk_index, bchunk_start, blocks_start;
+   get_location_info(heap, info_start, &amp;schunk_index, &amp;schunk_start, &amp;bchunks_start, &amp;bchunk_index, &amp;bchunk_start, &amp;blocks_start);
+
+   u32 block_index = (info_start - bchunk_start)/sizeof(block_descriptor_t);
+   u32 block_start = block_index + blocks_start * (heap->block_size);
+
+   u32 slab_index_within_bchunk = (block_start - blocks_start)/(heap->slab_size)
+   u32 slab_index_within_schunk = bchunk_index * slabs_per_bchunk + slab_index_within_bchunk;
+
+   return ((slab_descriptor_t *)(schunk_start))[slab_index_within_schunk];
+}
+
+void *get_slab_start(slab_descriptor_t *slab_desc){
+   u32 info_start = (u32)(slab_desc);
+   u32 bchunks_start = get_bchunks_start(heap, info_start);
+   u32 schunk_start = get_schunk_start(heap, info_start);
+   u32 slab_index = ((info_start - schunk_start) / sizeof(slab_descriptor_t));
+   u32 bchunk_index = slab_index / (heap->slabs_per_bchunk);
+   u32 slab_index_within_bchunk = slab_index % (heap->slabs_per_bchunk);
+   return (void *)(bchunks_start + (heap->bchunk_size)*bchunk_index + heap->bchunk_metadata_size + (heap->slab_size)*slab_index_within_bchunk);
+}
+
+void *get_block_start(block_descriptor_t *block_desc){
+   u32 info_start = (u32)(block_desc), schunk_index, schunk_start, bchunks_start, bchunk_index, bchunk_start, blocks_start;
+   get_location_info(heap, info_start, &amp;schunk_index, &amp;schunk_start, &amp;bchunks_start, &amp;bchunk_index, &amp;bchunk_start, &amp;blocks_start);
+
+   u32 block_index = (info_start - bchunk_start)/sizeof(block_descriptor_t);
+
+   return (void*)(blocks_start + block_index*(heap->block_size));
+}
+
+inline u32 get_schunk_index(kheap_t *heap, u32 info_start){
+   return (info_start - heap->start)/(heap->schunk_size);
+}
+inline u32 get_schunk_start(kheap_t *heap, u32 info_start){
+   return get_schunk_index(heap, info_start) * heap->schunk_size + heap->start;
+}
+inline u32 get_bchunks_start(kheap_t *heap, u32 info_start){ 
+   return get_schunk_start(heap, info_start) + heap->schunk_metadata_size; 
+}
+inline u32 get_bchunk_index(kheap_t *heap, u32 info_start){
+   return (info_start - get_bchunks_start(heap, info_start))/(heap->bchunk_size);
+}
+inline u32 get_bchunk_start(kheap_t *heap, u32 info_start){
+   return get_bchunk_index(heap, info_start) * (heap->bchunk_size) + get_bchunks_start;
+}
+inline u32 get_blocks_start(kheap_t *heap, u32 info_start){
+   return bchunk_start + heap->bchunk_metadata_size;
+}
+
+void get_location_info(kheap_t *heap, u32 info_start, u32 *schunk_index, u32 *schunk_start, u32 *bchunks_start, u32 *bchunk_index, u32 *bchunk_start, u32 *blocks_start){
+   *schunk_index = (info_start - heap->start)/heap->schunk_size;
+   *schunk_start = *schunk_index * heap->schunk_size + heap->start;
+
+   *bchunks_start = *schunk_start + align_by(SLABS_PER_SCHUNK * sizeof(slab_descriptor_t), PAGE_SIZE);
+   *bchunk_index = (info_start - *bchunks_start)/(heap->bchunk_size);
+   *bchunk_start = *bchunk_index * (heap->bchunk_size) + *bchunks_start;
+
+   *blocks_start = *bchunk_start + align_by(BLOCKS_PER_BCHUNK*sizeof(block_descriptor_t), PAGE_SIZE);
+   return;
+}
+
+u32 align_by(u32 size, u32 block_size){ return size + (size % block_size != 0 ? block_size : 0) - (size % block_size); }
+</code>
+
+<p>
+//================================
+</p>
+
+<p>
+Of course, there are better ways to deal with some of these things.  It is
+easier to reclaim stuff if we make slab_desctiptor_t structs also contain a
+pointer to the first free block in the slab, and then let the freelist be
+managed slab-wise, while also maintaining a linked-list of slabs in the
+slab_descriptor information, and while all these things should be implemented
+in the final version, the above is mainly for reference to the arithmetic
+`compute the location of this information given that information' things,
+which are tricky.  
+</p>
+
+<p>
+A separate issue arises when we want to subsume the physmem manager into the
+allocator.  After all, expanding a heap of pagetables may at some point
+(e.g. after allocating 4096 page tables) itself require the allocation of
+another pagetable.  
+</p>
+
+<p>
+So suppose we implement the physmem allocator naively on top of the vmem
+allocator and subsequently find ourselves in the unfortunate situation of
+having our pagedir with a single pagetable listed as `present' which in turn
+has all of its pages listed as `present' and in fact in use, and, with all
+this being true, want to expand some heap.  This will require allocating
+another page, which will require expanding the heap of pagetables, which, due
+to the situation, will cause another call to allocate a page, which, as it is
+still impossible without allocating another pagetable, will trigger another
+call to do so, and the stack explodes and we die.  
+</p>
+
+<p>
+The obvious fix is to pre-allocate all the tables that the table and directory
+heaps may ever need.  Indeed, pre-allocating all tables for virtual memory
+above 0xC0000000 (i.e. all kernel tables) seems like a good idea anyways, as
+we then wouldn't have to update a bunch of processes pagedirs everytime some
+metadata was allocated for connections or events or whatever in the kernel.  
+</p>
+
+<p>
+Then the rest of the physmem should map relatively straightforwardly on top of
+our vmem manager, but this is a matter for later.  
+</p>
+
+<p>
+28:024846
+</p>
+
+</text>
+</post>

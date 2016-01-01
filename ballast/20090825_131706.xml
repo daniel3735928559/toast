@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="Paging on RHW" date="20090825:131706">
+<tag name="debug" />
+<tag name="qemu" />
+<tag name="map" />
+<tag name="paging" />
+<text>
+
+<p>
+Um, so, when I said `it works', I was talking about on QEMU.  I get infinite
+page faults (better than triple faults at least!) when I run it on RHW...
+We'll stick an asm("hlt"); into the handler to see what's going on.  
+</p>
+
+<p>
+...
+</p>
+
+<p>
+It says (I kid you not): 
+</p>
+
+<code>
+PAGE FAULT: at 0xDA06C633 with error code
+</code>
+
+<p>
+What?
+</p>
+
+<p>
+What if we stick an asm("hlt"); in right after enabling paging?  
+</p>
+
+<p>
+...
+</p>
+
+<p>
+Same thing if we put it after the function return.  What if before
+(i.e. immediately after reloading cr3)?  
+</p>
+
+<p>
+...
+</p>
+
+<p>
+Same.  !?!??!
+</p>
+
+<p>
+Actually, maybe this means the page faulting it happening entirely before the
+switch, e.g. when we set up the page tables or possibly even the monitor.
+Time to stick in some hlts to bisect the location of the problem.  
+</p>
+
+<p>
+...
+</p>
+
+<p>
+Happens before the switch and before the imap stack reset
+</p>
+
+<p>
+...
+</p>
+
+<p>
+And after setting the PD physical address, i.e. durring the mapping
+somewhere.  
+</p>
+
+<p>
+Actually, if we put in a bunch of hlts and press a key after each one this
+seems to act as a `continue' sort of thing.  So we seek to find out exactly
+which mapping and which point in the mapping is at fault (and why it didn't
+have a problem in QEMU).  
+</p>
+
+<p>
+We swapped the order of mapping because the only time we got a difference
+between QEMU and RHW is with vidmem hard-coded values, so we put vidmem
+mapping third this time, thus: 
+</p>
+
+<code>
+  asm("hlt");asm("hlt");
+  prints("0 ");
+  asm("hlt");asm("hlt");
+  paging_idmap((void *)K_STACK_PHYS, K_STACK_SIZE, 1, 0);
+  prints("1 ");
+  asm("hlt");asm("hlt");
+  paging_mapto((void *)K_DATA_PHYS, K_DATA_SIZE, (void *)0xC1000000, 1, 0);
+  prints("2 ");
+  asm("hlt");asm("hlt");
+  paging_idmap((void *)(videoram), height*width*3, 1, 0);
+  prints("3 ");
+  asm("hlt");asm("hlt");
+  paging_mapto((void *)K_BASE_PHYS, K_SIZE, (void *)0xC0000000, 1, 0);
+  prints("4 ");
+  asm("hlt");asm("hlt");
+</code>
+
+<p>
+But now we get page faulting at 0x747065.  !?!??!
+</p>
+
+<p>
+Let us look at the numbers for the others, just out of curiosity: 
+</p>
+
+<code>
+Thing  | Faulting addr | Physical addr
+=======================================
+STACK  | 0x747065      | 0x80000
+VIDMEM | 0xDA06C633    | 0xFD000000
+DATA   | 0x8440B06     | 0x30000
+KERNEL | 0x5B1F5FDB    | 0x10000
+</code>
+
+<p>
+Very weird.  
+</p>
+
+<p>
+171327
+</p>
+
+</text>
+</post>

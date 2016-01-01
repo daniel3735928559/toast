@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml-stylesheet href="style.xsl" type="text/xsl"?>
+<post title="A Refresher in the Details and a Plan for Victory" date="20090818:181932">
+<tag name="plan" />
+<tag name="api" />
+<tag name="map" />
+<text>
+
+<p>
+-Details: 
+</p>
+
+<p>
+Need to find and update this with: 
+
+<code>--Kernel stack location (physmem (if it matters) and vmem): 
+      0x90000 in physmem, 0xC0000000 in vmem?  
+--Kernel location (physmem and vmem)
+      Anywhere in physmem (probably 0x10000 onwards), 0xC0000000 in vmem.  
+--Kernel struct allocater's space (in vmem)
+      After kernel (rest of upper vmem).  (This may include the physmem mgr).  </code>
+</p>
+
+<p>
+Also, just for kicks, let us remind ourselves: 
+</p>
+
+<code>
+--Physical allocator's resources and functions (PT/PD locations and
+self-reference handling in particular)
+--IVT/IDT location (I seem to recall there was a problem with this)
+</code>
+
+<p>
+-Plan: 
+</p>
+
+<p>
+There is a high-level plan and a low-level plan.  The low-level plan is
+similar to (but more final than) the thing we've been talking about for a long
+time, namely the specific form of the kernel API.  We already have an idea
+what this must look like, but we'll spend the next day or so nailing down the
+details so that we can at least finish coding this by October.  
+</p>
+
+<code>
+--Kernel API: 
+   Primitives: 
+      event_t
+         int UID;
+	 continuation_t *handlers;
+
+      connection_t
+         int UID;
+	 event_t *rcv;
+	 event_t *send;
+	 void *rx_buf_start;
+	 void *tx_buf_start;
+	 int rx_buf_size;
+	 int tx_buf_size;
+
+      node_t
+	 int UID;
+	 pagedir_t *page_dir;
+
+      continuation_t
+         int UID;
+	 tss_t TSS;
+         node_t *node;
+	 int EIP;
+
+      vp_t
+         int UID;
+         node_t current;
+
+   Functions: 
+   (Node-related): 
+      mk_node
+      dump_node
+   (Continuation-related): 
+      mk_continuation
+      throw
+   (Event-related): 
+      register_as_handler
+      remove_handler
+      fire
+   (VP-related): 
+      mk_vp
+      suspend_vp
+      dump_vp
+   (Connection-related): 
+      connect
+      disconnect
+      send
+</code>
+
+<p>
+The high-level plan is the interface-descriptor language that will (hopefully)
+be most often used over the connections and events of the low-level API.  This
+should always be accessible from a shell, but should also be coverable with a
+GUI frontend to taste (e.g. I should be able to have a slider setting a value
+by, when the slider is moved, the IDL version of `change this value to that'
+is sent across a connection from the GUI node to the relevant running node,
+but also one should be able to, knowing the appropriate variable names and
+such, be able to open a shell, connect it to the relevant node, and change the
+value programmatically (which is obviously more often useful in a script than
+by hand, but the principle should remain)).  This requires a rather carefully
+thought-out high-level API which will comprise the Toast IDL, and which is the
+most crucial part of the design.  Significantly, it needs to be
+ultra-expressive, as the people who don't want to write in assembler (or some
+specifically-crafted HLL) will have to be able to work entirely with it (or
+else there is a risk of everyone using a personalized proprietary IDL, which
+entirely defeats the purpose).  This will take some consideration and effort,
+but we'll start with the following very simple OOP-inspired template for A.0.1
+and take it from there (note for instance that `set' and `get' are redundant
+with `call' because of accessor functions), considering that perhaps most
+significant is whatever scripting language/GUI builder falls out on top of
+this.  .
+</p>
+
+<code>
+--IDL:
+   Functions
+      set
+         sets the variable with the given name to the given value
+      call
+         calls the given function
+      get
+         returns the value associated with the given variable name
+</code>
+
+<p>
+21:163938
+</p>
+
+</text>
+</post>
